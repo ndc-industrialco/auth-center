@@ -1,0 +1,398 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                   String                 @id @default(cuid())
+  employeeId           String                 @unique
+  email                String?                @unique
+  displayName          String?
+  m365Linked           Boolean                @default(false)
+  canSendDelegatedMail Boolean                @default(false)
+  employmentStatus     EmploymentStatus       @default(ACTIVE)
+  defaultAuthMethod    AuthMethod             @default(LOCAL_PASSWORD)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  profile              EmployeeProfile?
+  externalLinks        ExternalIdentityLink[]
+  identityAccounts     IdentityAccount[]
+  localCredential      LocalCredential?
+  loginAudits          LoginAudit[]
+  permissionGrants     PermissionGrant[]
+  roleGrants           RoleGrant[]
+  sessions             UserSession[]
+  groupMemberships     EmailGroupMember[]
+
+  @@index([employeeId])
+  @@index([email])
+  @@index([employmentStatus])
+  @@map("users")
+}
+
+model EmployeeProfile {
+  id             String      @id @default(cuid())
+  userId         String      @unique
+  departmentId   String?
+  department     String?
+  jobTitle       String?
+  officeLocation String?
+  mobilePhone    String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentRef  Department? @relation(fields: [departmentId], references: [code], onDelete: SetNull)
+
+  @@index([departmentId])
+  @@map("employee_profiles")
+}
+
+model Department {
+  id          String            @id @default(cuid())
+  code        String            @unique
+  displayName String
+  source      String            @default("GRAPH")
+  userCount   Int               @default(0)
+  syncedAt    DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  profiles    EmployeeProfile[]
+
+  @@index([displayName])
+  @@map("departments")
+}
+
+model IdentityAccount {
+  id                String       @id @default(cuid())
+  userId            String
+  type              IdentityType
+  providerAccountId String?
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+  @@index([type])
+  @@map("identity_accounts")
+}
+
+model ExternalIdentityLink {
+  id             String   @id @default(cuid())
+  userId         String
+  entraObjectId  String   @unique
+  entraUpn       String?
+  linkedAt       DateTime @default(now())
+  linkedByMethod String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([entraObjectId])
+  @@map("external_identity_links")
+}
+
+model LocalCredential {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  passwordHash   String
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  lastChangedAt  DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("local_credentials")
+}
+
+model AppRegistration {
+  id                  String              @id @default(cuid())
+  appId               String              @unique
+  displayName         String
+  description         String?
+  isActive            Boolean             @default(true)
+  secretHash          String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  permissionGrants    PermissionGrant[]
+  roleGrants          RoleGrant[]
+  defaultRolePolicies DefaultRolePolicy[]
+
+  @@index([appId])
+  @@map("app_registrations")
+}
+
+model RoleGrant {
+  id        String          @id @default(cuid())
+  userId    String
+  appId     String
+  role      String
+  grantedBy String?
+  grantedAt DateTime        @default(now())
+  expiresAt DateTime?
+  isActive  Boolean         @default(true)
+  app       AppRegistration @relation(fields: [appId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, appId, role])
+  @@index([userId])
+  @@index([appId])
+  @@index([userId, appId])
+  @@map("role_grants")
+}
+
+model PermissionGrant {
+  id         String          @id @default(cuid())
+  userId     String
+  appId      String
+  permission String
+  grantedBy  String?
+  grantedAt  DateTime        @default(now())
+  expiresAt  DateTime?
+  isActive   Boolean         @default(true)
+  app        AppRegistration @relation(fields: [appId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, appId, permission])
+  @@index([userId])
+  @@index([appId])
+  @@index([userId, appId])
+  @@map("permission_grants")
+}
+
+model EmailGroup {
+  id              String             @id @default(cuid())
+  entraGroupId    String             @unique
+  displayName     String
+  mail            String?
+  description     String?
+  securityEnabled Boolean            @default(false)
+  mailEnabled     Boolean            @default(true)
+  groupTypes      String?
+  memberCount     Int                @default(0)
+  syncedAt        DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  members         EmailGroupMember[]
+
+  @@index([displayName])
+  @@index([mail])
+  @@map("email_groups")
+}
+
+model EmailGroupMember {
+  id            String     @id @default(cuid())
+  groupId       String
+  userId        String?
+  entraObjectId String
+  email         String?
+  displayName   String?
+  memberType    String?
+  syncedAt      DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  group         EmailGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user          User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([groupId, entraObjectId])
+  @@index([groupId])
+  @@index([userId])
+  @@index([email])
+  @@map("email_group_members")
+}
+
+model UserSession {
+  id         String        @id @default(cuid())
+  userId     String
+  sessionId  String        @unique
+  authMethod AuthMethod
+  ipAddress  String?
+  userAgent  String?
+  status     SessionStatus @default(ACTIVE)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  revokedBy  String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([userId, status])
+  @@map("user_sessions")
+}
+
+model LoginAudit {
+  id          String       @id @default(cuid())
+  userId      String?
+  employeeId  String?
+  authMethod  AuthMethod
+  outcome     LoginOutcome
+  ipAddress   String?
+  userAgent   String?
+  failReason  String?
+  sessionId   String?
+  requestId   String?
+  attemptedAt DateTime     @default(now())
+  user        User?        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([employeeId])
+  @@index([outcome])
+  @@index([attemptedAt])
+  @@map("login_audits")
+}
+
+enum IdentityType {
+  ENTRA
+  LOCAL
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+enum AuthMethod {
+  ENTRA
+  LOCAL_PASSWORD
+  LOCAL_OTP
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum LoginOutcome {
+  SUCCESS
+  FAILED_CREDENTIALS
+  FAILED_RATE_LIMIT
+  FAILED_ACCOUNT_LOCKED
+  FAILED_NOT_FOUND
+  FAILED_ENTRA_ERROR
+}
+
+enum AdminAction {
+  APP_REGISTERED
+  APP_DEACTIVATED
+  ROLE_GRANTED
+  ROLE_REVOKED
+  PERMISSION_GRANTED
+  PERMISSION_REVOKED
+  ENTRA_LINKED
+  ENTRA_UNLINKED
+  SESSION_REVOKED_BY_ADMIN
+  SESSIONS_REVOKED_ALL
+  CREDENTIAL_CREATED
+  CREDENTIAL_RESET
+  LOCAL_LOGIN_ENABLED
+  LOCAL_LOGIN_DISABLED
+  USER_DEACTIVATED
+  USER_REACTIVATED
+  DEFAULT_GRANT_POLICY_CREATED
+  DEFAULT_GRANT_POLICY_DEACTIVATED
+  DIRECTORY_USERS_SYNCED
+  DIRECTORY_GROUPS_SYNCED
+  DIRECTORY_DEPARTMENTS_REBUILT
+  USER_PROFILE_SYNCED_TO_GRAPH
+  GROUP_MEMBER_ADDED
+  GROUP_MEMBER_REMOVED
+  USER_CREATED
+}
+
+enum DefaultRolePolicyApplyTo {
+  ALL
+  ENTRA_ONLY
+  LOCAL_ONLY
+}
+
+enum DirectorySyncEntityType {
+  USER
+  DEPARTMENT
+  GROUP
+  GROUP_MEMBERS
+}
+
+enum DirectorySyncDirection {
+  PULL
+  PUSH
+}
+
+enum DirectorySyncStatus {
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+model DefaultRolePolicy {
+  id           String                   @id @default(cuid())
+  appId        String
+  role         String
+  applyTo      DefaultRolePolicyApplyTo @default(ALL)
+  departmentId String?
+  description  String?
+  isActive     Boolean                  @default(true)
+  createdBy    String
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  app AppRegistration @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, role, applyTo, departmentId])
+  @@index([appId])
+  @@index([isActive])
+  @@index([departmentId])
+  @@map("default_role_policies")
+}
+
+model AdminAudit {
+  id           String      @id @default(cuid())
+  actorId      String
+  action       AdminAction
+  targetUserId String?
+  targetAppId  String?
+  resourceType String
+  resourceId   String?
+  detail       String?
+  ipAddress    String?
+  requestId    String?
+  performedAt  DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([performedAt])
+  @@map("admin_audits")
+}
+
+model DirectorySyncLog {
+  id           String                  @id @default(cuid())
+  entityType   DirectorySyncEntityType
+  entityId     String?
+  direction    DirectorySyncDirection
+  status       DirectorySyncStatus
+  requestedBy  String
+  requestedAt  DateTime                @default(now())
+  completedAt  DateTime?
+  summaryJson  Json?
+  errorMessage String?
+
+  @@index([entityType])
+  @@index([entityId])
+  @@index([direction])
+  @@index([status])
+  @@index([requestedBy])
+  @@index([requestedAt])
+  @@map("directory_sync_logs")
+}

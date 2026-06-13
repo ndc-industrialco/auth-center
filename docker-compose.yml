@@ -1,0 +1,79 @@
+name: auth-center
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: auth-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  migrate:
+    image: ghcr.io/ndc-industrialco/auth-center:${IMAGE_TAG:-latest}
+    command: ["npx", "prisma", "migrate", "deploy"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+    restart: "no"
+    networks:
+      - internal
+
+  auth-center:
+    image: ghcr.io/ndc-industrialco/auth-center:${IMAGE_TAG:-latest}
+    pull_policy: always
+    container_name: auth-center
+    restart: unless-stopped
+    ports:
+      - "7777:7777"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DIRECT_URL: ${DIRECT_URL}
+      NODE_ENV: production
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      AUTH_URL: ${AUTH_URL}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID}
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID}
+      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET}
+      AUTH_PRIVATE_KEY: ${AUTH_PRIVATE_KEY}
+      AUTH_PUBLIC_KEY: ${AUTH_PUBLIC_KEY}
+      AUTH_KEY_ID: ${AUTH_KEY_ID}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7777/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - internal
+
+volumes:
+  redis_data:
+
+networks:
+  internal:
+    driver: bridge
+  external:
+    external: true

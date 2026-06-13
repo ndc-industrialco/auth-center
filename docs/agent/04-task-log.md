@@ -1,0 +1,91 @@
+# Task Log
+
+## 2026-06-12 - Manual Folder For Integration And Sprint Rationale
+
+### Delivered
+- Added `manual/README.md` as the manual entry point
+- Added step-by-step integration guide for all consumer apps
+- Added rationale document explaining why Auth Center should come before CAR implementation-heavy sprint work
+- Linked the manual folder from `README.md`
+
+### Notes
+- This manual set is written for both implementation and stakeholder explanation
+- The sprint rationale document is intended to support planning discussions, not only coding tasks
+
+## 2026-06-12 - Consumer Integration Manual
+
+### Delivered
+- Added `AUTH-CENTER-INTEGRATION-MANUAL.md` for new app onboarding
+- Replaced outdated consumer integration note that still referenced shared `AUTH_SECRET`
+- Linked the new manual from `README.md`
+
+### Notes
+- Manual reflects the current token-redirect integration flow
+- Longer-term production direction remains authorization-code exchange
+
+## 2026-06-12 - Consumer App Redirect Handoff
+
+### Delivered
+- Added consumer-app redirect helper with `redirectUri` validation
+- Updated `/auth/login` to preserve `redirectUri` and `state`
+- Updated local login flow to redirect back to the consumer app with `token` and `state`
+- Updated Entra login flow to redirect back to the consumer app with `token` and `state`
+
+### Verification
+- `npm test` passed
+- `npm run build` passed
+- `npm run lint` still has the same 2 React Compiler warnings unrelated to auth handoff
+
+## 2026-06-12 - Deploy Checklist Kickoff
+
+### Delivered
+- Added `.env.example` with deploy-safe placeholders
+- Added `npm run keys:generate` helper for RSA signing key generation
+- Verified `prisma generate`, `prisma migrate deploy`, `npm test`, and `npm run build`
+- Verified `/api/health` responds successfully from runtime
+
+### Findings
+- Health check reached `ok` with DB and Redis healthy on rerun
+- Admin bootstrap already exists in the database with active `ADMIN` grants
+- `npm run lint` still reports 2 React Compiler compatibility warnings in form components
+
+## 2026-06-12 - Documentation Refresh For Auth Center Handoff
+
+### Delivered
+- Created `AUTH-CENTER-SUMMARY.md` as the main implementation and integration summary
+- Replaced scaffold `README.md` with project-specific startup and document links
+- Added `DEPLOY-CHECKLIST.md` for production readiness and go-live checks
+
+### Notes
+- Documentation now points to the current integration/testing status instead of generic Next.js scaffold content
+- Production checklist covers env, DB, Redis, JWKS, Entra/Graph, admin bootstrap, and consumer-app onboarding
+
+## 2026-06-11 - Auth Center Bootstrap
+
+**Phases completed:** 0 (Design), 1 (Schema), 2 (Auth Runtime), 3 (Permission Engine), 4 (Mail Capability), 5 (Consumer Contract)
+
+### Delivered
+- Prisma schema: 11 models (including AdminAudit), 2 migrations
+- Auth.js v5 Entra sign-in with Graph API employeeId resolution
+- Local login (bcrypt, rate limit, account lockout)
+- JWT issuance (HS256, jose), session revocation (Redis + DB dual-write)
+- Admin APIs with `requireAdmin` guard (ADMIN role check)
+- `proxy.ts` (Next.js 16 replacement for middleware.ts) - admin route protection
+- Login page UI (Server Action -> httpOnly cookie)
+- Consumer SDK (`lib/consumerSdk.ts`)
+- Issuer metadata endpoint (`GET /api/auth/issuer`)
+- 15 unit tests (vitest), TypeScript clean
+
+### Rules compliance fixes (2026-06-11)
+- Removed unused `LOGIN_API_PREFIX` from `proxy.ts`
+- Login page token storage moved from `sessionStorage` -> `httpOnly cookie` via Server Action
+- Added `AdminAudit` model and repository - audit trail for all admin actions
+- `appRegistrationService` now records audit on every grant/revoke/register
+- Fixed `entraAuthService.handleEntraSignIn` concurrency race (unique constraint retry pattern)
+- Created missing architecture docs: api-map, database-map, dependency-map
+
+### Known gaps / future work
+- Integration/E2E tests
+- Admin UI pages
+- Production deployment config
+- `AUTH_CENTER_SECRET` env var documented for consuming apps but not in this repo's `.env.example`
