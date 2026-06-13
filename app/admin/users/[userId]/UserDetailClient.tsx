@@ -154,7 +154,7 @@ export function EditProfileModal({
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 w-full max-w-lg">
           <Dialog.Title className="text-lg font-semibold text-slate-800 mb-4">Edit Profile</Dialog.Title>
           <Dialog.Description className="text-sm text-slate-600 mb-4">
-            Update the user's profile information.
+            Update the user&apos;s profile information.
           </Dialog.Description>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

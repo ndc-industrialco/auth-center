@@ -6,7 +6,7 @@ import { sessionService } from '@/services/sessionService';
 import { SessionRevokedError, UnauthorizedError } from '@/errors/customErrors';
 import { getJwtAlgorithm, getJwtKeyId, getSigningKey, getVerificationKey } from '@/lib/jwtKeys';
 
-const ISSUER = process.env.NEXTAUTH_URL ?? 'http://localhost:3001';
+const ISSUER = 'auth-center';
 const ACCESS_TOKEN_TTL_SEC = 60 * 60 * 8; // 8 hours — match consumer cookie maxAge
 
 export class TokenService {

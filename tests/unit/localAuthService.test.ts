@@ -107,7 +107,8 @@ describe('LocalAuthService', () => {
     ).rejects.toThrow('Invalid credentials');
 
     expect(loginAuditRepository.record).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'FAILED_CREDENTIALS' })
+      expect.objectContaining({ outcome: 'FAILED_CREDENTIALS' }),
+      expect.anything()
     );
   });
 

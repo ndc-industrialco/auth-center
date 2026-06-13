@@ -12,7 +12,10 @@
     "test:coverage": "vitest run --coverage",
     "keys:generate": "tsx scripts/generate-jwt-keys.ts",
     "seed:admin": "tsx scripts/seed-admin.ts",
-    "seed:admin:reset-password": "tsx scripts/reset-admin-password.ts"
+    "seed:admin:reset-password": "tsx scripts/reset-admin-password.ts",
+    "ci:check": "npx prisma generate && npm run lint && npm test",
+    "ci:local": "bash scripts/ci-local.sh",
+    "hooks:install": "bash scripts/install-hooks.sh"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
