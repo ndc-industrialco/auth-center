@@ -89,3 +89,12 @@
 - Admin UI pages
 - Production deployment config
 - `AUTH_CENTER_SECRET` env var documented for consuming apps but not in this repo's `.env.example`
+
+## 2026-06-13 - Container Revision Labeling
+
+### Delivered
+- Added `ARG GIT_SHA` and `org.opencontainers.image.revision` label to the production image
+- Updated GitHub Actions image build step to pass `${{ github.sha }}` as a Docker build arg
+
+### Notes
+- Running containers can now be mapped back to an exact commit via `docker inspect`

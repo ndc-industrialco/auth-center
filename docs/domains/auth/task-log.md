@@ -51,3 +51,12 @@
 ### Impact
 - New developers and consumer-app teams now have a clear entry point
 - Production rollout requirements are documented in one place
+
+## 2026-06-13 - Container Revision Labeling
+
+### Delivered
+- Added OCI revision labeling to the production Docker image
+- Wired GitHub Actions image builds to inject the source commit SHA
+
+### Impact
+- Operations can identify the deployed commit directly from the running `auth-center` container
