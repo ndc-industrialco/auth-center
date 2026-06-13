@@ -40,6 +40,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts   ./prisma.confi
 COPY --from=builder --chown=nextjs:nodejs /app/app/generated      ./app/generated
 
 USER nextjs
-EXPOSE 3001
+EXPOSE 7777
 
 CMD ["npm", "start"]
