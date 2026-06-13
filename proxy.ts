@@ -12,7 +12,8 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith(ADMIN_UI_PREFIX)) {
     const session = await auth();
     if (!session?.user) {
-      const loginUrl = new URL(LOGIN_PAGE, request.url);
+      const base = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? request.url;
+      const loginUrl = new URL(LOGIN_PAGE, base);
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
