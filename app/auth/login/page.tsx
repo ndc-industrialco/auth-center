@@ -1,4 +1,5 @@
 import { LoginPageClient } from './LoginPageClient';
+import { getPublicBaseUrl } from '@/lib/publicUrl';
 
 interface Props {
   searchParams: Promise<{
@@ -15,6 +16,7 @@ export default async function LoginPage({ searchParams }: Props) {
   const appId = params.appId ?? 'auth-center';
   const redirectUri = params.redirectUri;
   const state = params.state;
+  const publicBaseUrl = getPublicBaseUrl();
 
   return (
     <LoginPageClient
@@ -22,6 +24,7 @@ export default async function LoginPage({ searchParams }: Props) {
       appId={appId}
       redirectUri={redirectUri}
       state={state}
+      publicBaseUrl={publicBaseUrl}
     />
   );
 }

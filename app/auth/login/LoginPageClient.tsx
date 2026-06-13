@@ -38,11 +38,13 @@ export function LoginPageClient({
   appId,
   redirectUri,
   state,
+  publicBaseUrl,
 }: {
   callbackUrl: string;
   appId: string;
   redirectUri?: string;
   state?: string;
+  publicBaseUrl: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export function LoginPageClient({
   }
 
   async function handleEntraLogin() {
-    const nextCallbackUrl = new URL('/api/auth/login/entra', window.location.origin);
+    const nextCallbackUrl = new URL('/api/auth/login/entra', publicBaseUrl);
     nextCallbackUrl.searchParams.set('callbackUrl', callbackUrl);
     nextCallbackUrl.searchParams.set('appId', appId);
     if (redirectUri) {

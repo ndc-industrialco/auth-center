@@ -9,6 +9,7 @@ import { appRegistrationService } from '@/services/appRegistrationService';
 import { buildConsumerRedirectUrl } from '@/lib/consumerRedirect';
 import { handleApiError } from '@/lib/apiErrorHandler';
 import { UnauthorizedError, NotFoundError } from '@/errors/customErrors';
+import { resolvePublicUrl } from '@/lib/publicUrl';
 import type { AuthUser } from '@/types/auth';
 
 const querySchema = z.object({
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.redirect(new URL(callbackUrl, request.nextUrl.origin));
+    return NextResponse.redirect(resolvePublicUrl(callbackUrl));
   } catch (error) {
     return handleApiError(error);
   }
