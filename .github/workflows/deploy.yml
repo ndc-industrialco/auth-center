@@ -106,7 +106,7 @@ jobs:
   # ── 3. CD Deploy: Self-hosted runner on-prem ─────────────────────────────
   deploy:
     name: CD Deploy — On-Prem
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     needs: build
     environment: production
     timeout-minutes: 15
