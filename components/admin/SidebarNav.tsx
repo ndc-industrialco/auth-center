@@ -11,7 +11,10 @@ const NAV_ITEMS = [
   { href: '/admin/directory', label: 'Directory', icon: 'Y' },
   { href: '/admin/role-grants', label: 'Role Grants', icon: 'R' },
   { href: '/admin/default-grants', label: 'Default Grants', icon: 'G' },
+  { href: '/admin/active-sessions', label: 'Auth Sessions', icon: 'N' },
+  { href: '/admin/consumer-sessions', label: 'Consumer Sessions', icon: 'C' },
   { href: '/admin/audit', label: 'Audit Log', icon: 'L' },
+  { href: '/admin/db-viewer', label: 'DB Viewer', icon: 'T' },
 ];
 
 export function SidebarNav() {

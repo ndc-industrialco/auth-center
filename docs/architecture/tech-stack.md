@@ -1,31 +1,30 @@
-# Auth Center — Tech Stack
+# Auth Center Tech Stack
 
 ## Runtime
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| Framework | Next.js 16.2.9 (App Router) | Breaking changes from Next 15 — read `node_modules/next/dist/docs/` |
+| Framework | Next.js 16.2.9 (App Router) | |
 | Language | TypeScript 5 | Strict mode |
-| React | 19.2.4 | Server Components for any admin UI |
-| CSS | Tailwind CSS v4 | Not primary concern for Phase 1-2 |
+| React | 19.2.4 | |
+| CSS | Tailwind CSS v4 | |
 
 ## Data
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| ORM | Prisma 7.8.0 | Breaking: no `url` in schema, use `prisma.config.ts` |
-| DB Adapter | `@prisma/adapter-pg` 7.8.0 | Driver adapter pattern, no legacy `DATABASE_URL` in schema |
-| Database | PostgreSQL | Connection via `DATABASE_URL` env |
-| Cache / Revocation | Redis via `ioredis` | `REDIS_URL` env — fail-open on errors |
+| ORM | Prisma 7.8.0 | |
+| DB Adapter | `@prisma/adapter-pg` | |
+| Database | PostgreSQL | |
+| Cache / Revocation | Redis via `ioredis` | |
 
 ## Auth
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| Entra SSO | `next-auth@beta` (Auth.js v5) | App Router native, `AUTH_SECRET` env |
-| Entra Provider | `@auth/prisma-adapter` | Account linking |
-| JWT (internal) | `jose` | HS256 signed with `AUTH_SECRET` |
-| Local Passwords | `bcryptjs` | 12 rounds recommended |
+| Entra SSO | `next-auth@beta` | Auth.js v5 |
+| JWT | `jose` | Production `RS256` with public `JWKS`; non-production `HS256` fallback with `AUTH_SECRET` |
+| Local Passwords | `bcryptjs` | |
 
 ## Validation
 
@@ -33,24 +32,23 @@
 |-------|-----------|
 | Schema validation | `zod` |
 
-## Prisma Client Import Path
+## Required Environment Variables
 
-```typescript
-import { PrismaClient } from '@/app/generated/prisma';
-import type { Prisma, User } from '@/app/generated/prisma';
-```
-
-Never import from `@prisma/client` directly.
-
-## Environment Variables Required
-
-```
+```env
 DATABASE_URL=
-DIRECT_URL=          # optional for Prisma Accelerate
+DIRECT_URL=
 REDIS_URL=
 AUTH_SECRET=
 AUTH_URL=
 AZURE_AD_CLIENT_ID=
 AZURE_AD_CLIENT_SECRET=
 AZURE_AD_TENANT_ID=
+```
+
+Production also requires:
+
+```env
+AUTH_PRIVATE_KEY=
+AUTH_PUBLIC_KEY=
+AUTH_KEY_ID=
 ```

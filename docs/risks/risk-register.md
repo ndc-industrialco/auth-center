@@ -11,7 +11,7 @@ Status: Active — review at each phase release.
 |----|------|------|-----------|--------|-----------|--------|
 | R-01 | Identity | Two employees mapped to the same Entra objectId | Low | Critical | `ExternalIdentityLink.entraObjectId @unique` DB constraint; concurrent sign-in handled with retry | Mitigated |
 | R-02 | Identity | Wrong Entra-to-employee mapping (email collision) | Medium | High | Email fallback only when no existing link; admin link/unlink audit trail; `ENTRA_LINKED` event in AdminAudit | Partially mitigated — manual verification recommended for email-based auto-link |
-| R-03 | Token | Stale `appRoles` in token after grant revocation | High | Medium | `permVersion` claim; consuming apps must cache and detect change; refresh endpoint available | Accepted — token TTL is 1 hour maximum exposure |
+| R-03 | Token | Stale `appRoles` in token after grant revocation | High | Medium | `roleVersion` claim; consuming apps must cache and detect change; refresh endpoint available | Accepted — token TTL is 8 hours maximum exposure |
 | R-04 | Session | Redis revocation down — revoked session used briefly | Medium | Medium | DB is authoritative; isSessionValid() always falls back to DB; Redis failure only creates a brief window | Accepted — fail-open is explicit by design |
 | R-05 | Session | Session fixation via refresh with known sessionId | Low | High | Refresh requires knowledge of sessionId only (no token required); sessionId is a UUID generated server-side; not exposed in URLs | Accepted — mitigated by UUID entropy and httpOnly cookie storage |
 | R-06 | Credential | Brute-force on LOCAL accounts | High | Medium | Rate limit (10/5min per employeeId) + account lockout (5 failures, 15 min) | Mitigated |

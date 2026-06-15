@@ -1,19 +1,21 @@
 # Auth Center Consumer Integration
 
-เอกสารหลักสำหรับการเชื่อม consumer app กับ `Auth Center` อยู่ที่:
+Primary consumer-app integration documents:
 
 - [AUTH-CENTER-INTEGRATION-MANUAL.md](/d:/NDC_042/NextJS/Auth-Center/AUTH-CENTER-INTEGRATION-MANUAL.md)
 - [manual/01-step-by-step-connect-auth-center.md](/d:/NDC_042/NextJS/Auth-Center/manual/01-step-by-step-connect-auth-center.md)
 
-สรุปสั้น:
+Short summary:
 
-- consumer app พา user ไป login ที่ `Auth Center`
-- `Auth Center` ออก token สำหรับ app เป้าหมาย
-- consumer app verify token ด้วย `JWKS`
-- consumer app ใช้ `appRoles` ทำ authorization ของตัวเอง
+- consumer app redirects the user to `Auth Center`
+- `Auth Center` authenticates the user
+- `Auth Center` issues an app-scoped JWT
+- consumer app verifies the token with `JWKS`
+- consumer app enforces authorization using `appRoles`
+- consumer app can track token freshness using `roleVersion`
 
-ข้อสำคัญ:
+Important:
 
-- ไม่แชร์ `AUTH_SECRET` ระหว่างระบบ
-- private key อยู่เฉพาะ `Auth Center`
-- consumer app ใช้ public keys จาก `JWKS`
+- production should not use shared-secret verification as the main integration model
+- the private signing key stays only in `Auth Center`
+- consumer apps use public keys from the `JWKS` endpoint

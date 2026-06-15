@@ -98,3 +98,47 @@
 
 ### Notes
 - Running containers can now be mapped back to an exact commit via `docker inspect`
+
+## 2026-06-15 - Consumer Documentation Alignment
+
+### Delivered
+- Added `AUTH-CENTER-INTEGRATION-MANUAL.md` as the canonical self-service consumer-app entrypoint
+- Rewrote consumer-facing contract docs to match the current `RS256 + JWKS` production model
+- Updated consumer-facing claim naming from `permVersion` references to `roleVersion`
+- Fixed manual entry links and aligned issuer metadata TTL documentation to the current 8-hour token lifetime
+
+### Notes
+- The documentation set now points teams toward one integration model instead of mixed `HS256` and `JWKS` guidance
+
+## 2026-06-15 - Common Problems Manual
+
+### Delivered
+- Renamed the troubleshooting manual entry to `manual/04-ปัญหาที่พบบ่อย.md`
+- Reframed the content around the most common integration failures: stale roles, wrong audience, wrong app grant, and wrong redirect/callback flow
+- Updated document links from README and integration manual
+
+## 2026-06-15 - Consumer Session Registry
+
+### Delivered
+- Added `ConsumerAppSession` schema and migration for consumer-app-reported active session tracking
+- Added internal session registry API routes:
+  - `POST /api/internal/consumer-sessions/register`
+  - `POST /api/internal/consumer-sessions/heartbeat`
+  - `POST /api/internal/consumer-sessions/revoke`
+- Added `consumerAppSessionService`, repository, validation schemas, and `requireConsumerApp` app-secret authentication helper
+- Updated current-state and domain-map docs to include consumer-app session visibility
+
+### Notes
+- These endpoints are authenticated by `X-Consumer-App-Id` + `X-Consumer-App-Secret`
+- Intended for QMS and future consumer apps to report app-owned session lifecycle back to Auth Center
+
+## 2026-06-15 - Consumer Session Admin UI
+
+### Delivered
+- Added `/admin/consumer-sessions` for admin visibility into consumer-app-reported sessions
+- Added sidebar navigation entry to separate Auth Center sessions from consumer app sessions
+- Extended DB Viewer to include `ConsumerAppSession`
+
+### Notes
+- The new page is read-only and intended for operational visibility/troubleshooting
+- Filters currently support search, app, status, and pagination

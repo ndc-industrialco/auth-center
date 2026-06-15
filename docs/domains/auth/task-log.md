@@ -60,3 +60,40 @@
 
 ### Impact
 - Operations can identify the deployed commit directly from the running `auth-center` container
+
+## 2026-06-15 - Consumer Documentation Alignment
+
+### Delivered
+- Added `AUTH-CENTER-INTEGRATION-MANUAL.md` as the canonical consumer-app integration entrypoint
+- Updated consumer-facing docs to align with `RS256 + JWKS` production verification
+- Replaced stale `permVersion` references in consumer-facing docs with `roleVersion`
+- Fixed manual links and corrected issuer metadata TTL documentation to the actual 8-hour token lifetime
+
+### Impact
+- Consumer-app teams now have a more reliable self-service documentation path
+
+## 2026-06-15 - Common Problems Manual
+
+### Delivered
+- Changed the troubleshooting manual into a clearer `ปัญหาที่พบบ่อย` document
+- Added guidance for redirect/callback mistakes in addition to stale-role problems
+- Updated main document links to point to the new file
+
+## 2026-06-15 - Consumer Session Registry
+
+### Delivered
+- Added a `ConsumerAppSession` persistence model for consumer-app active session tracking
+- Implemented internal register/heartbeat/revoke session APIs for backend-to-backend consumer app reporting
+- Added app-secret-based authentication for internal consumer session registry endpoints
+
+### Impact
+- Auth Center can now become the central visibility layer for active sessions across QMS and future connected apps
+
+## 2026-06-15 - Consumer Session Admin UI
+
+### Delivered
+- Added a dedicated admin page for consumer-app session visibility
+- Added sidebar access and DB Viewer coverage for `ConsumerAppSession`
+
+### Impact
+- Admin can now verify whether a consumer app really registered login state without querying the database manually

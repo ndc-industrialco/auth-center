@@ -22,9 +22,29 @@ Central authentication and role-management service for NDC internal applications
 - Step-by-step app onboarding: [manual/01-step-by-step-connect-auth-center.md]
 - Why Auth Center before business sprint: [manual/02-why-auth-center-before-car-sprint.md]
 - M365 manual sync/push spec: [manual/03-m365-manual-sync-push-spec.md]
-- Role/session troubleshooting: [manual/04-role-session-troubleshooting.md]
+- Common problems: [manual/04-ปัญหาที่พบบ่อย.md]
 - Consumer integration notes: [docs/domains/auth/consumer-integration.md]
 - Claims contract: [docs/domains/auth/claims-contract.md]
+
+## Integration Status
+
+Current integration status:
+
+- ready for development
+- ready for internal integration testing
+- manual set is intended to be self-service for consumer app teams
+
+Current recommended consumer-app pattern:
+
+- token redirect handoff
+- local JWT verification using `JWKS`
+- authorization based on `appRoles`
+
+Important:
+
+- production should use `RS256` + `JWKS`
+- `HS256` with `AUTH_SECRET` is only a non-production fallback
+
 ## Local Development
 
 Run on `http://localhost:3001`.

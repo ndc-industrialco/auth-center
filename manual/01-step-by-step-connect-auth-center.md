@@ -99,6 +99,16 @@ export async function verifyAuthCenterToken(token: string) {
 
 Always verify both `issuer` and `audience`. A token issued for a different app must be rejected.
 
+Production expectation:
+
+- verify with `JWKS`
+- do not use a shared signing secret between systems as the standard production model
+
+Development-only fallback:
+
+- a local/dev environment may still verify with a shared secret if `JWKS` is not enabled yet
+- that is not the preferred production pattern
+
 ---
 
 ## 6. Available Claims
@@ -116,6 +126,7 @@ Always verify both `issuer` and `audience`. A token issued for a different app m
 | `departmentId` | Department ID |
 | `employmentStatus` | Employment status |
 | `appRoles` | Array of roles granted for your app |
+| `roleVersion` | Freshness marker for granted role changes |
 | `sessionId` | Session ID for revocation tracking |
 
 ---

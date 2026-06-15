@@ -32,11 +32,13 @@ User (canonical identity, keyed by employeeId)
   └── RoleGrant[] (per-app role assignments)
   └── PermissionGrant[] (per-app permission assignments)
   └── UserSession[] (active/revoked sessions)
+  └── ConsumerAppSession[] (consumer-app reported sessions)
   └── LoginAudit[] (immutable audit records)
 
 AppRegistration (registered consumer apps)
   └── RoleGrant[] (grants issued for this app)
   └── PermissionGrant[] (grants issued for this app)
+  └── ConsumerAppSession[] (active sessions reported by this app)
 ```
 
 ## Service Boundaries
@@ -47,7 +49,7 @@ AppRegistration (registered consumer apps)
 | `entraAuthService` | Entra callback, account linking/unlinking |
 | `sessionService` | Create/revoke/validate sessions |
 | `tokenService` | Issue and verify Auth Center JWTs |
-| `permissionService` | Resolve effective roles/permissions, compute permVersion |
+| `permissionService` | Resolve effective roles and compute roleVersion |
 | `appRegistrationService` | Manage app registry, role/permission grants (admin) |
 | `authService` | Top-level orchestrator, public API surface |
 

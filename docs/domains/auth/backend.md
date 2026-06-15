@@ -1,54 +1,27 @@
-# Auth Domain — Backend
+# Auth Domain Backend
 
-## Service Map
+## permissionService
 
-### `permissionService`
-Resolves effective roles and permissions for a `(userId, appId)` pair.
-Computes `permVersion` as a SHA-256 hash of sorted role+permission strings (first 12 hex chars).
-- **Must not** call other services.
-- **May** call `roleGrantRepository` and `permissionGrantRepository`.
+Resolves effective roles for a `(userId, appId)` pair.
 
-### `tokenService`
-Issues and verifies Auth Center JWTs using `jose` (HS256, `AUTH_SECRET`).
-Assembles all `AuthCenterTokenClaims` from a provided `AuthUser` + `appId` + `sessionId`.
-- **Always** sets `canSendDelegatedMail = false` when `authMethod !== 'ENTRA'`.
-- **Must not** call repositories directly — receives `AuthUser` as input.
-- Depends on `permissionService` for claim resolution.
+It computes `roleVersion` as a SHA-256 hash of the sorted granted-role set, truncated to 12 hex characters.
 
-### `sessionService`
-Creates and revokes `UserSession` records.
-Dual-writes revocation to Redis (fast path) and PostgreSQL (authoritative).
-Fails open on Redis errors — DB is the source of truth.
-- TTL: 8 hours per session.
+## tokenService
 
-### `localAuthService`
-Handles `employeeId + password` login.
-- Rate limits per `employeeId` key (not IP) to protect accounts without enabling user enumeration.
-- Locks accounts after 5 failed attempts for 15 minutes.
-- Always audits every attempt via `loginAuditRepository`.
-- Delegates session creation to `sessionService`.
-- Delegates token issuance to `tokenService`.
+Issues and verifies Auth Center JWTs using `jose`.
 
-### `entraAuthService`
-Handles Entra ID post-sign-in processing.
-- Matches Entra profile to a User by `entraObjectId` link, then email fallback.
-- Auto-creates User if `employeeId` is present in the Entra profile.
-- Manages `ExternalIdentityLink` and `IdentityAccount` records.
-- Supports admin-triggered link and unlink flows.
+Current behavior:
 
-### `appRegistrationService`
-Admin-only. Manages the `AppRegistration` registry and grants/revocations.
-Validates that both user and app exist before creating any grant.
+- production signing uses `RS256`
+- non-production may fallback to `HS256`
+- tokens contain `appRoles` and `roleVersion`
+- verification also checks live session validity
 
-### `authService`
-Public orchestrator. The only service that route handlers should import.
-- `loginLocal` → delegates to `localAuthService`
-- `logout` → delegates to `sessionService`
-- `refreshToken` → validates session, re-issues token
-- `getMe` → resolves user profile + current roles/permissions
+## authService
 
-## Repository Contract
+Top-level orchestrator for public auth workflows such as:
 
-Repositories expose domain-meaningful method names. No raw Prisma queries in services.
-All repositories accept an optional `tx?: Prisma.TransactionClient` for transaction participation.
-`loginAuditRepository` exposes no `update` or `delete` methods — append-only.
+- local login
+- token refresh
+- current-user resolution
+- audience checks

@@ -34,6 +34,6 @@ export async function GET() {
       'exp',
     ],
     auth_methods_supported: ['ENTRA', 'LOCAL_PASSWORD', 'LOCAL_OTP'],
-    token_ttl_seconds: 3600,
+    token_ttl_seconds: 2592000,
   });
 }

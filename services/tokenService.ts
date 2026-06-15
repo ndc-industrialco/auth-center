@@ -7,7 +7,7 @@ import { SessionRevokedError, UnauthorizedError } from '@/errors/customErrors';
 import { getJwtAlgorithm, getJwtKeyId, getSigningKey, getVerificationKey } from '@/lib/jwtKeys';
 
 const ISSUER = 'auth-center';
-const ACCESS_TOKEN_TTL_SEC = 60 * 60 * 8; // 8 hours — match consumer cookie maxAge
+const ACCESS_TOKEN_TTL_SEC = 60 * 60 * 24 * 30; // 30 days
 
 export class TokenService {
   async issueAccessToken(

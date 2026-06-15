@@ -102,7 +102,7 @@ export function LoginPageClient({
           src={YT_SRC}
           title="background"
           allow="autoplay; encrypted-media"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full h-[56.25vw] min-h-full border-0 scale-[1.2] sm:scale-[1]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full h-[56.25vw] min-h-full border-0 scale-[1.2] sm:scale-[1.15]"
         />
         <div className="absolute inset-0 bg-black/10" />
       </div>

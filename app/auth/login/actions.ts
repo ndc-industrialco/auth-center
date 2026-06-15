@@ -7,7 +7,7 @@ import { ZodError } from 'zod';
 import { buildConsumerRedirectUrl } from '@/lib/consumerRedirect';
 
 const COOKIE_NAME = 'ac_token';
-const COOKIE_MAX_AGE = 60 * 60; // 1 hour — matches token TTL
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days — matches ACCESS_TOKEN_TTL_SEC in tokenService
 
 export interface LoginResult {
   ok: boolean;

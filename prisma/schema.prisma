@@ -26,6 +26,7 @@ model User {
   permissionGrants     PermissionGrant[]
   roleGrants           RoleGrant[]
   sessions             UserSession[]
+  consumerAppSessions  ConsumerAppSession[]
   groupMemberships     EmailGroupMember[]
 
   @@index([employeeId])
@@ -123,6 +124,7 @@ model AppRegistration {
   permissionGrants    PermissionGrant[]
   roleGrants          RoleGrant[]
   defaultRolePolicies DefaultRolePolicy[]
+  consumerAppSessions ConsumerAppSession[]
 
   @@index([appId])
   @@map("app_registrations")
@@ -274,6 +276,13 @@ enum SessionStatus {
   EXPIRED
 }
 
+enum ConsumerAppSessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+  LOGGED_OUT
+}
+
 enum LoginOutcome {
   SUCCESS
   FAILED_CREDENTIALS
@@ -395,4 +404,36 @@ model DirectorySyncLog {
   @@index([requestedBy])
   @@index([requestedAt])
   @@map("directory_sync_logs")
+}
+
+model ConsumerAppSession {
+  id                String                   @id @default(cuid())
+  userId            String
+  appRegistrationId String
+  sessionId         String
+  employeeId        String?
+  appRoles          String[]
+  effectiveRole     String
+  status            ConsumerAppSessionStatus @default(ACTIVE)
+  loginAt           DateTime
+  lastSeenAt        DateTime
+  expiresAt         DateTime?
+  revokedAt         DateTime?
+  revokeReason      String?
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  app  AppRegistration @relation(fields: [appRegistrationId], references: [id], onDelete: Cascade)
+
+  @@unique([appRegistrationId, sessionId])
+  @@index([userId])
+  @@index([appRegistrationId])
+  @@index([status])
+  @@index([userId, status])
+  @@index([appRegistrationId, status])
+  @@index([lastSeenAt])
+  @@map("consumer_app_sessions")
 }

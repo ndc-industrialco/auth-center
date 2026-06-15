@@ -1,40 +1,63 @@
-# Auth Domain — Overview
+# Auth Domain Overview
 
 ## Purpose
 
-Auth Center is the identity and authorization hub for all NDC enterprise applications.
+Auth Center is the identity and authorization hub for NDC enterprise applications.
 
 ## Identity Model
 
 Two identity types are supported:
 
-### ENTRA (Microsoft Entra ID / M365)
-- Signs in via Microsoft SSO
-- Has an `ExternalIdentityLink` linking Entra `objectId` to `User.employeeId`
-- Can receive `canSendDelegatedMail = true` if business policy allows
-- Auth.js v5 handles the Entra OAuth flow
+### ENTRA
+
+- Sign in via Microsoft Entra ID / Microsoft 365
+- Linked through Entra object ID to the Auth Center user
+- May receive `canSendDelegatedMail = true` if business policy allows
 
 ### LOCAL
-- Signs in with `employeeId + password`
-- Password stored as bcrypt hash in `LocalCredential`
+
+- Sign in with `employeeId + password`
+- Password is stored as a bcrypt hash
 - Can never receive delegated mail capability
-- Subject to brute-force lockout (5 failed attempts → 15-minute lock)
 
-## Token Contract
+## Token Model
 
-Auth Center issues HS256 JWTs to consuming apps. Each token is scoped to one `appId`.
+Auth Center issues app-scoped JWTs to consuming apps.
 
-Key claims: `sub`, `userId`, `employeeId`, `authMethod`, `m365Linked`, `canSendDelegatedMail`, `departmentId`, `appRoles`, `permVersion`, `sessionId`
+Production model:
 
-Consuming apps validate tokens locally using `AUTH_SECRET` without roundtripping to Auth Center on every request.
+- signing algorithm is `RS256`
+- consuming apps verify via `JWKS`
+
+Non-production fallback:
+
+- `HS256` with `AUTH_SECRET`
+
+Important claims:
+
+- `sub`
+- `userId`
+- `employeeId`
+- `authMethod`
+- `m365Linked`
+- `canSendDelegatedMail`
+- `departmentId`
+- `appRoles`
+- `roleVersion`
+- `sessionId`
 
 ## Session Revocation
 
 Revocation is dual-write:
-1. Redis key `session:revoked:{sessionId}` — fast path, fail-open
-2. `UserSession.status = REVOKED` in PostgreSQL — authoritative audit record
+
+1. Redis fast path
+2. PostgreSQL `UserSession` authoritative record
 
 ## Centralized Authorization
 
-Roles and permissions are granted per `(userId, appId)` pair via `RoleGrant` and `PermissionGrant`.
-The `permVersion` claim lets consuming apps detect stale permission caches without a live lookup.
+Roles and permissions are granted per `(userId, appId)` pair.
+
+Consumer apps should use:
+
+- `appRoles` for authorization
+- `roleVersion` to detect stale role state
