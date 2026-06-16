@@ -10,6 +10,7 @@ import { NotFoundError } from '@/errors/customErrors';
 const bodySchema = z.object({
   appId: z.string().min(1).max(100),
   displayName: z.string().min(1).max(200).optional(),
+  department: z.string().max(200).optional().nullable(),
   jobTitle: z.string().max(200).optional().nullable(),
   officeLocation: z.string().max(200).optional().nullable(),
   mobilePhone: z.string().max(50).optional().nullable(),
@@ -60,6 +61,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
     await selfProfileService.updateOwnProfile(userId, {
       displayName: body.displayName,
+      department: body.department ?? undefined,
       jobTitle: body.jobTitle ?? undefined,
       officeLocation: body.officeLocation ?? undefined,
       mobilePhone: body.mobilePhone ?? undefined,

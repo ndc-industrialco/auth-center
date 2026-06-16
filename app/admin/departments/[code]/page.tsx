@@ -32,7 +32,7 @@ async function getDepartmentWithMembers(code: string) {
 
 export default async function DepartmentDetailPage({ params }: Props) {
   const { code } = await params;
-  const dept = await getDepartmentWithMembers(code);
+  const dept = await getDepartmentWithMembers(decodeURIComponent(code));
   if (!dept) notFound();
 
   return (
