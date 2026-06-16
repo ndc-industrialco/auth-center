@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: '/admin/apps', label: 'Apps', icon: 'A' },
   { href: '/admin/users', label: 'Users', icon: 'U' },
   { href: '/admin/directory', label: 'Directory', icon: 'Y' },
+  { href: '/admin/departments', label: 'Departments', icon: 'P' },
   { href: '/admin/role-grants', label: 'Role Grants', icon: 'R' },
   { href: '/admin/default-grants', label: 'Default Grants', icon: 'G' },
   { href: '/admin/active-sessions', label: 'Auth Sessions', icon: 'N' },

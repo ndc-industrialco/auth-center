@@ -130,22 +130,32 @@ export class EntraAuthService {
    */
   private async syncEmployeeProfile(userId: string, profile: EntraProfile): Promise<void> {
     try {
+      const departmentCode = profile.department?.trim().toUpperCase() ?? null;
+
+      if (departmentCode) {
+        await db.department.upsert({
+          where: { code: departmentCode },
+          create: { code: departmentCode, displayName: profile.department!, source: 'GRAPH', syncedAt: new Date() },
+          update: { displayName: profile.department!, syncedAt: new Date() },
+        });
+      }
+
       await db.employeeProfile.upsert({
         where: { userId },
         create: {
           userId,
-          department:    profile.department,
-          departmentId:  profile.department,    // use department name as ID until HR sync provides codes
-          jobTitle:      profile.jobTitle,
-          officeLocation: profile.officeLocation,
-          mobilePhone:   profile.mobilePhone,
+          department:     profile.department ?? null,
+          departmentId:   departmentCode,
+          jobTitle:       profile.jobTitle ?? null,
+          officeLocation: profile.officeLocation ?? null,
+          mobilePhone:    profile.mobilePhone ?? null,
         },
         update: {
-          department:    profile.department,
-          departmentId:  profile.department,
-          jobTitle:      profile.jobTitle,
-          officeLocation: profile.officeLocation,
-          mobilePhone:   profile.mobilePhone,
+          department:     profile.department ?? null,
+          departmentId:   departmentCode,
+          jobTitle:       profile.jobTitle ?? null,
+          officeLocation: profile.officeLocation ?? null,
+          mobilePhone:    profile.mobilePhone ?? null,
         },
       });
     } catch (err) {

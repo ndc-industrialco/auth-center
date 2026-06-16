@@ -457,7 +457,7 @@ export class DirectorySyncService {
     }
 
     await db.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.department.deleteMany({});
+      await tx.department.deleteMany({ where: { source: 'GRAPH' } });
 
       for (const [code, value] of counts.entries()) {
         await tx.department.create({

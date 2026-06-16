@@ -13,10 +13,13 @@ export async function requireAppAdmin(request: NextRequest, appId: string) {
   const token = authHeader.slice(7);
   const claims = await tokenService.verifyAccessToken(token, appId);
 
-  const ADMIN_ROLE_PATTERN = /^[A-Z][A-Z0-9]*(_[A-Z][A-Z0-9]*)*_ADMIN$/;
-  const hasAdminRole = claims.appRoles.some((role) => role === 'ADMIN' || ADMIN_ROLE_PATTERN.test(role));
+  // Generic delegated-admin convention for all consumer apps:
+  // - ADMIN / IT (simple app-local roles)
+  // - any app-scoped role ending with _ADMIN or _IT, e.g. QMS_ADMIN, QMS_IT, HR_CENTER_IT
+  const APP_ADMIN_ROLE_PATTERN = /(?:^|_)(ADMIN|IT)$/;
+  const hasAdminRole = claims.appRoles.some((role) => role === 'ADMIN' || role === 'IT' || APP_ADMIN_ROLE_PATTERN.test(role));
   if (!hasAdminRole) {
-    throw new ForbiddenError('Application admin role required');
+    throw new ForbiddenError('Application admin or IT role required');
   }
 
   return claims;

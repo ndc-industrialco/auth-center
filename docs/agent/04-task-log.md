@@ -142,3 +142,4 @@
 ### Notes
 - The new page is read-only and intended for operational visibility/troubleshooting
 - Filters currently support search, app, status, and pagination
+- [x] Added delegated consumer-app authorization improvements: `requireAppAdmin()` now accepts generic app-scoped IT/admin roles (for example `QMS_IT`, `HR_CENTER_IT`), and `GET /api/auth/consumer/departments` now allows any authenticated app member token while keeping write operations app-admin-only.
