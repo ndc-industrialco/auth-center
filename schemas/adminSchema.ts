@@ -38,7 +38,13 @@ export const createUserSchema = z.object({
   groupIds:        z.array(z.string()).optional(),
 });
 
+export const updateAvailableRolesSchema = z.object({
+  appId: z.string().min(1).max(50),
+  roles: z.array(z.string().min(1).max(100)).max(50),
+});
+
 export type CreateAppInput = z.infer<typeof createAppSchema>;
 export type CreateRoleGrantInput = z.infer<typeof createRoleGrantSchema>;
 export type CreateDefaultRolePolicyInput = z.infer<typeof createDefaultRolePolicySchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type UpdateAvailableRolesInput = z.infer<typeof updateAvailableRolesSchema>;

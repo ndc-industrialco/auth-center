@@ -21,6 +21,10 @@ export class AppRegistrationRepository extends BaseRepository<AppRegistration> {
   async updateById(id: string, data: Prisma.AppRegistrationUpdateInput, tx?: Prisma.TransactionClient): Promise<AppRegistration> {
     return this.getClient(tx).appRegistration.update({ where: { id }, data });
   }
+
+  async updateAvailableRoles(appId: string, roles: string[], tx?: Prisma.TransactionClient): Promise<AppRegistration> {
+    return this.getClient(tx).appRegistration.update({ where: { appId }, data: { availableRoles: roles } });
+  }
 }
 
 export const appRegistrationRepository = new AppRegistrationRepository();

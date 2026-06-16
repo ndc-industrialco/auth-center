@@ -117,6 +117,7 @@ model AppRegistration {
   appId               String              @unique
   displayName         String
   description         String?
+  availableRoles      String[]            @default([])
   isActive            Boolean             @default(true)
   secretHash          String?
   createdAt           DateTime            @default(now())
@@ -295,6 +296,7 @@ enum LoginOutcome {
 enum AdminAction {
   APP_REGISTERED
   APP_DEACTIVATED
+  APP_ROLES_UPDATED
   ROLE_GRANTED
   ROLE_REVOKED
   PERMISSION_GRANTED

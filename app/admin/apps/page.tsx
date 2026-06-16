@@ -1,9 +1,15 @@
+import Link from 'next/link';
 import { db } from '@/lib/db';
 import { Badge } from '@/components/ui/badge';
 import { RegisterAppModal } from './RegisterAppModal';
 
 async function getApps() {
-  return db.appRegistration.findMany({ orderBy: { createdAt: 'desc' } });
+  return db.appRegistration.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      _count: { select: { roleGrants: { where: { isActive: true } } } },
+    },
+  });
 }
 
 export default async function AdminAppsPage() {
@@ -44,6 +50,7 @@ export default async function AdminAppsPage() {
                     <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">Display Name</th>
                     <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">Description</th>
                     <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-center">Status</th>
+                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-center">Grants</th>
                     <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-center">Registered</th>
                   </tr>
                 </thead>
@@ -51,7 +58,12 @@ export default async function AdminAppsPage() {
                   {apps.map((app) => (
                     <tr key={app.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-sm text-slate-700 font-semibold">{app.appId}</span>
+                        <Link
+                          href={`/admin/apps/${app.appId}`}
+                          className="font-mono text-sm text-slate-700 font-semibold hover:text-[#0F1059] hover:underline"
+                        >
+                          {app.appId}
+                        </Link>
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700">{app.displayName}</td>
                       <td className="px-4 py-3 text-sm text-slate-400">{app.description ?? '—'}</td>
@@ -60,6 +72,9 @@ export default async function AdminAppsPage() {
                           label={app.isActive ? 'Active' : 'Inactive'}
                           variant={app.isActive ? 'active' : 'inactive'}
                         />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-400 font-mono text-center">
+                        {app._count.roleGrants}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-400 font-mono text-center">
                         {app.createdAt.toISOString().slice(0, 10)}
@@ -73,7 +88,7 @@ export default async function AdminAppsPage() {
             {/* Mobile */}
             <div className="lg:hidden divide-y divide-slate-100">
               {apps.map((app) => (
-                <div key={app.id} className="p-4">
+                <Link key={app.id} href={`/admin/apps/${app.appId}`} className="block p-4 hover:bg-slate-50 transition-colors">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="font-mono text-sm font-semibold text-slate-800">{app.appId}</p>
@@ -88,9 +103,9 @@ export default async function AdminAppsPage() {
                     <p className="text-xs text-slate-400 mt-1">{app.description}</p>
                   )}
                   <p className="text-xs text-slate-400 font-mono mt-2">
-                    {app.createdAt.toISOString().slice(0, 10)}
+                    {app._count.roleGrants} grants · {app.createdAt.toISOString().slice(0, 10)}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           </>

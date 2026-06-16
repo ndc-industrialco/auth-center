@@ -1,6 +1,6 @@
 import type { AppRegistration } from '@/app/generated/prisma/client';
 import type { Prisma } from '@/app/generated/prisma/client';
-import type { CreateAppInput, CreateRoleGrantInput } from '@/schemas/adminSchema';
+import type { CreateAppInput, CreateRoleGrantInput, UpdateAvailableRolesInput } from '@/schemas/adminSchema';
 import { db } from '@/lib/db';
 import { appRegistrationRepository } from '@/repositories/appRegistrationRepository';
 import { roleGrantRepository } from '@/repositories/roleGrantRepository';
@@ -110,6 +110,97 @@ export class AppRegistrationService {
       targetUserId: grant.userId,
       targetAppId: grant.appId,
       detail: { role: grant.role },
+    });
+  }
+
+  async bulkGrantRole(appId: string, role: string, actorId: string): Promise<number> {
+    const app = await this.assertActiveApp(appId);
+
+    const count = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+      const users = await tx.user.findMany({
+        where: { employmentStatus: 'ACTIVE' },
+        select: { id: true },
+      });
+
+      // Revoke all active grants in this app that are NOT the target role
+      await tx.roleGrant.updateMany({
+        where: { app: { appId }, isActive: true, role: { not: role } },
+        data: { isActive: false },
+      });
+
+      // Reactivate any inactive grants that match the target role
+      await tx.roleGrant.updateMany({
+        where: { app: { appId }, role, isActive: false },
+        data: { isActive: true, grantedBy: actorId, grantedAt: new Date() },
+      });
+
+      // Find which users already have an active grant now
+      const existing = await tx.roleGrant.findMany({
+        where: { app: { appId }, role, isActive: true },
+        select: { userId: true },
+      });
+      const grantedIds = new Set(existing.map((g) => g.userId));
+
+      // Create grants for the rest
+      const toCreate = users.filter((u) => !grantedIds.has(u.id));
+      if (toCreate.length > 0) {
+        await tx.roleGrant.createMany({
+          data: toCreate.map((u) => ({
+            userId: u.id,
+            appId: app.id,
+            role,
+            grantedBy: actorId,
+          })),
+        });
+      }
+
+      return users.length;
+    });
+
+    await adminAuditRepository.record({
+      actorId,
+      action: 'ROLE_GRANTED',
+      resourceType: 'RoleGrant',
+      targetAppId: appId,
+      detail: { role, bulk: true, userCount: count },
+    });
+
+    return count;
+  }
+
+  async updateAvailableRoles(input: UpdateAvailableRolesInput, actorId: string): Promise<AppRegistration> {
+    const app = await this.assertActiveApp(input.appId);
+    const normalized = [...new Set(input.roles.map((r) => r.trim().toUpperCase()).filter(Boolean))];
+    const updated = await appRegistrationRepository.updateAvailableRoles(input.appId, normalized);
+
+    await adminAuditRepository.record({
+      actorId,
+      action: 'APP_ROLES_UPDATED',
+      resourceType: 'AppRegistration',
+      resourceId: app.id,
+      targetAppId: app.appId,
+      detail: { availableRoles: normalized },
+    });
+
+    return updated;
+  }
+
+  async revokeAllRolesForUser(userId: string, appId: string, actorId: string): Promise<void> {
+    const [user] = await Promise.all([
+      userRepository.findById(userId),
+      this.assertActiveApp(appId),
+    ]);
+    if (!user) throw new NotFoundError('User not found');
+
+    await roleGrantRepository.revokeActiveByUserAndApp(userId, appId);
+
+    await adminAuditRepository.record({
+      actorId,
+      action: 'ROLE_REVOKED',
+      resourceType: 'RoleGrant',
+      targetUserId: userId,
+      targetAppId: appId,
+      detail: { role: 'ALL' },
     });
   }
 }
