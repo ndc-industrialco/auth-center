@@ -14,6 +14,7 @@ import {
   updateDepartmentAction,
   deleteDepartmentAction,
   syncDepartmentsFromM365Action,
+  syncDepartmentToM365Action,
 } from './actions';
 
 // ── Create ──────────────────────────────────────────────────────────────────
@@ -248,6 +249,33 @@ export function DeleteDepartmentButton({ code, userCount }: DeleteDepartmentButt
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+// ── Sync dept to M365 ────────────────────────────────────────────────────────
+export function SyncDeptToM365Button({ code }: { code: string }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleSync() {
+    startTransition(async () => {
+      const result = await syncDepartmentToM365Action(code);
+      if (result.ok) {
+        toast.success(result.message ?? 'Pushed to M365');
+      } else {
+        toast.error(result.error ?? 'Sync failed');
+      }
+    });
+  }
+
+  return (
+    <button
+      className="text-sky-600 text-xs font-medium hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled={isPending}
+      onClick={handleSync}
+      title="Push department name to all M365-linked users in this department"
+    >
+      {isPending ? 'Pushing...' : '↑ M365'}
+    </button>
   );
 }
 

@@ -71,13 +71,14 @@ export class CredentialService {
       throw new ValidationError('No local credential exists. Set a password first.');
     }
 
-    await identityAccountRepository.upsert(userId, 'LOCAL', userId);
-
-    await adminAuditRepository.record({
-      actorId,
-      action: 'LOCAL_LOGIN_ENABLED',
-      resourceType: 'IdentityAccount',
-      targetUserId: userId,
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
+      await identityAccountRepository.upsert(userId, 'LOCAL', userId, tx);
+      await adminAuditRepository.record({
+        actorId,
+        action: 'LOCAL_LOGIN_ENABLED',
+        resourceType: 'IdentityAccount',
+        targetUserId: userId,
+      }, tx);
     });
   }
 }

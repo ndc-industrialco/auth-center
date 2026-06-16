@@ -64,7 +64,7 @@ export default async function AppDetailPage({ params }: Props) {
           <p className="text-xs text-slate-400 font-mono hidden lg:block">
             Registered {app.createdAt.toISOString().slice(0, 10)}
           </p>
-          <AppGrantRoleModal appId={app.appId} users={usersForModal} />
+          <AppGrantRoleModal appId={app.appId} users={usersForModal} availableRoles={availableRoles} />
         </div>
       </div>
 

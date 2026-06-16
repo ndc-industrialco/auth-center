@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { Badge } from '@/components/ui/badge';
-import { CreateDepartmentButton, EditDepartmentButton, DeleteDepartmentButton, SyncFromM365Button } from './DepartmentClient';
+import { CreateDepartmentButton, EditDepartmentButton, DeleteDepartmentButton, SyncFromM365Button, SyncDeptToM365Button } from './DepartmentClient';
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
@@ -18,6 +18,10 @@ async function getDepartments(search?: string) {
         }
       : undefined,
     orderBy: { displayName: 'asc' },
+    include: {
+      // Live count of active members — avoids stale userCount field
+      _count: { select: { profiles: { where: { user: { employmentStatus: 'ACTIVE' } } } } },
+    },
   });
 }
 
@@ -103,7 +107,7 @@ export default async function AdminDepartmentsPage({ searchParams }: Props) {
                         variant={dept.source === 'GRAPH' ? 'info' : 'neutral'}
                       />
                     </td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-600">{dept.userCount}</td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-600">{dept._count.profiles}</td>
                     <td className="px-4 py-3 text-sm text-slate-400">
                       {dept.syncedAt
                         ? new Date(dept.syncedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -117,8 +121,9 @@ export default async function AdminDepartmentsPage({ searchParams }: Props) {
                         >
                           Members
                         </Link>
+                        <SyncDeptToM365Button code={dept.code} />
                         <EditDepartmentButton code={dept.code} currentName={dept.displayName} />
-                        <DeleteDepartmentButton code={dept.code} userCount={dept.userCount} />
+                        <DeleteDepartmentButton code={dept.code} userCount={dept._count.profiles} />
                       </div>
                     </td>
                   </tr>

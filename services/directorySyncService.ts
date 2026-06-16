@@ -440,8 +440,12 @@ export class DirectorySyncService {
   }
 
   async rebuildDepartments(actorId: string): Promise<number> {
+    // Count only ACTIVE users — consistent with what the detail page displays.
     const profiles = await db.employeeProfile.findMany({
-      where: { departmentId: { not: null } },
+      where: {
+        departmentId: { not: null },
+        user: { employmentStatus: 'ACTIVE' },
+      },
       select: { departmentId: true, department: true },
     });
 
@@ -456,19 +460,60 @@ export class DirectorySyncService {
       counts.set(profile.departmentId, current);
     }
 
-    await db.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.department.deleteMany({ where: { source: 'GRAPH' } });
+    const updatedCodes = [...counts.keys()];
 
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Use upsert instead of deleteMany+create.
+      // deleteMany triggers onDelete: SetNull cascade and nulls EmployeeProfile.departmentId
+      // for every affected row — the newly created departments would then have 0 members.
       for (const [code, value] of counts.entries()) {
-        await tx.department.create({
-          data: {
+        await tx.department.upsert({
+          where: { code },
+          create: {
             code,
             displayName: value.displayName,
             userCount: value.count,
             source: 'GRAPH',
             syncedAt: new Date(),
           },
+          update: {
+            displayName: value.displayName,
+            userCount: value.count,
+            syncedAt: new Date(),
+          },
         });
+      }
+
+      // Restore departmentId for profiles where it was previously nulled by cascade delete
+      // but the department display name is still intact. This heals data from prior runs
+      // that used the deleteMany+create pattern.
+      const orphanedProfiles = await tx.employeeProfile.findMany({
+        where: { departmentId: null, department: { not: null } },
+        select: { id: true, department: true },
+      });
+      for (const profile of orphanedProfiles) {
+        if (!profile.department) continue;
+        const dept = await tx.department.findFirst({
+          where: { displayName: { equals: profile.department, mode: 'insensitive' } },
+          select: { code: true },
+        });
+        if (dept) {
+          await tx.employeeProfile.update({
+            where: { id: profile.id },
+            data: { departmentId: dept.code },
+          });
+        }
+      }
+
+      // Remove GRAPH departments that no longer have any active users.
+      // These departments have no profiles pointing at them (departmentId already null or
+      // pointing to a different code), so onDelete: SetNull is a no-op here.
+      if (updatedCodes.length > 0) {
+        await tx.department.deleteMany({
+          where: { source: 'GRAPH', code: { notIn: updatedCodes } },
+        });
+      } else {
+        await tx.department.deleteMany({ where: { source: 'GRAPH' } });
       }
     });
 

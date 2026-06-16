@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/db';
+import { departmentRepository } from '@/repositories/departmentRepository';
 import { requireAppAdmin } from '@/lib/requireAppAdmin';
 import { sendSuccess } from '@/lib/apiResponse';
 import { handleApiError } from '@/lib/apiErrorHandler';
@@ -15,7 +15,7 @@ interface RouteContext {
 
 /**
  * GET /api/auth/consumer/departments/:code/members?appId=qms
- * List users whose profile is assigned to this department.
+ * List users whose profile is assigned to this department, with their roles for the requesting app.
  */
 export async function GET(request: NextRequest, { params }: RouteContext) {
   try {
@@ -23,43 +23,24 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     const query = querySchema.parse(Object.fromEntries(request.nextUrl.searchParams));
     await requireAppAdmin(request, query.appId);
 
-    const dept = await db.department.findUnique({
-      where: { code: code.toUpperCase() },
-    });
+    const dept = await departmentRepository.findWithMembersAndRoles(
+      code.toUpperCase(),
+      query.appId
+    );
 
     if (!dept) {
       return sendSuccess({ department: null, members: [], source: 'auth_center' });
     }
 
-    // Find all users with a profile linked to this department code
-    const users = await db.user.findMany({
-      where: {
-        profile: { departmentId: code.toUpperCase() },
-        employmentStatus: 'ACTIVE',
-      },
-      include: {
-        profile: true,
-        roleGrants: {
-          where: {
-            isActive: true,
-            app: { appId: query.appId },
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          },
-          include: { app: { select: { appId: true } } },
-        },
-      },
-      orderBy: { displayName: 'asc' },
-    });
-
-    const members = users.map((u) => ({
-      id: u.id,
-      employeeId: u.employeeId,
-      email: u.email,
-      displayName: u.displayName,
-      jobTitle: u.profile?.jobTitle ?? null,
-      officeLocation: u.profile?.officeLocation ?? null,
-      m365Linked: u.m365Linked,
-      roles: u.roleGrants.map((g) => g.role),
+    const members = dept.profiles.map((p) => ({
+      id: p.user.id,
+      employeeId: p.user.employeeId,
+      email: p.user.email,
+      displayName: p.user.displayName,
+      jobTitle: p.jobTitle ?? null,
+      officeLocation: p.officeLocation ?? null,
+      m365Linked: p.user.m365Linked,
+      roles: p.user.roleGrants.map((g) => g.role),
     }));
 
     return sendSuccess({

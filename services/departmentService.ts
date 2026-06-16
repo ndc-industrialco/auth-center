@@ -1,6 +1,7 @@
 import { departmentRepository } from '@/repositories/departmentRepository';
 import { adminAuditRepository } from '@/repositories/adminAuditRepository';
 import { directorySyncService } from '@/services/directorySyncService';
+import { updateGraphUserProfile } from '@/lib/graphAdminClient';
 import { ConflictError, NotFoundError } from '@/errors/customErrors';
 
 export class DepartmentService {
@@ -83,6 +84,31 @@ export class DepartmentService {
 
   async syncFromM365(actorId: string) {
     return directorySyncService.syncUsersFromGraph(actorId);
+  }
+
+  async syncToM365(actorId: string, code: string) {
+    const dept = await departmentRepository.findWithMembersAndLinks(code);
+    if (!dept) throw new NotFoundError(`Department "${code}" not found`);
+
+    let synced = 0;
+    let skipped = 0;
+
+    for (const profile of dept.profiles) {
+      const link = profile.user.externalLinks[0];
+      if (!link) { skipped++; continue; }
+      await updateGraphUserProfile(link.entraObjectId, { department: dept.displayName });
+      synced++;
+    }
+
+    await adminAuditRepository.record({
+      actorId,
+      action: 'USER_PROFILE_SYNCED_TO_GRAPH',
+      resourceType: 'Department',
+      resourceId: dept.id,
+      detail: { code, displayName: dept.displayName, op: 'sync_dept_to_m365', synced, skipped },
+    });
+
+    return { synced, skipped };
   }
 }
 

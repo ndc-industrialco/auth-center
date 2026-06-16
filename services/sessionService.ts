@@ -31,12 +31,15 @@ export class SessionService {
     // updateMany is idempotent — safe on already-revoked or non-existent sessions
     await sessionRepository.revokeSession(sessionId, revokedBy);
 
-    // Use remaining TTL so the Redis key doesn't outlive the session's natural expiry
+    // Use remaining TTL so the Redis key doesn't outlive the session's natural expiry.
+    // Skip caching if session is already expired — isSessionValid() catches it via expiresAt check.
     const session = await sessionRepository.findBySessionId(sessionId);
     const remainingTtl = session
-      ? Math.max(60, Math.floor((session.expiresAt.getTime() - Date.now()) / 1000))
+      ? Math.floor((session.expiresAt.getTime() - Date.now()) / 1000)
       : SESSION_TTL_SEC;
-    await markSessionRevoked(sessionId, remainingTtl);
+    if (remainingTtl > 0) {
+      await markSessionRevoked(sessionId, remainingTtl);
+    }
   }
 
   async revokeAllForUser(userId: string, revokedBy: string): Promise<void> {

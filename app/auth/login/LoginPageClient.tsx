@@ -178,7 +178,7 @@ export function LoginPageClient({
                 autoComplete="username"
                 required
                 placeholder={tx.empPlaceholder}
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-white/50 focus:bg-white/15 transition-colors"
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/50 focus:outline-none focus:border-white/50 focus:bg-white/15 transition-colors"
               />
             </div>
             <div>

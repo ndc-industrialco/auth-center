@@ -11,7 +11,7 @@ async function getData() {
       orderBy: { grantedAt: 'desc' },
       take: 200,
     }),
-    db.appRegistration.findMany({ where: { isActive: true }, select: { appId: true, displayName: true } }),
+    db.appRegistration.findMany({ where: { isActive: true }, select: { appId: true, displayName: true, availableRoles: true } }),
     db.user.findMany({
       where: { employmentStatus: 'ACTIVE' },
       select: { id: true, employeeId: true, displayName: true },

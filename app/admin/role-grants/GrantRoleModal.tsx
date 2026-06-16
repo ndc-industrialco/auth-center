@@ -22,7 +22,7 @@ type FormValues = z.infer<typeof schema>;
 interface User { id: string; employeeId: string; displayName: string | null; }
 
 interface GrantRoleModalProps {
-  apps:  { appId: string; displayName: string }[];
+  apps:  { appId: string; displayName: string; availableRoles: string[] }[];
   users: User[];
   /** Pre-fill userId (used when opened from User Detail page) */
   prefillUserId?: string;
@@ -34,12 +34,13 @@ export function GrantRoleModal({ apps, users, prefillUserId, prefillEmployeeId }
   const [isPending, startTransition] = useTransition();
   const [userSearch, setUserSearch] = useState(prefillEmployeeId ?? '');
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors }, getValues } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { userId: prefillUserId ?? '' },
   });
 
   const selectedUserId = watch('userId');
+  const selectedAppId  = watch('appId');
 
   const filteredUsers = useMemo(() => {
     const q = userSearch.toLowerCase();
@@ -52,6 +53,12 @@ export function GrantRoleModal({ apps, users, prefillUserId, prefillEmployeeId }
   }, [userSearch, users]);
 
   const selectedUser = users.find((u) => u.id === selectedUserId);
+
+  // Roles for the currently selected app
+  const rolesForApp = useMemo(
+    () => apps.find((a) => a.appId === selectedAppId)?.availableRoles ?? [],
+    [apps, selectedAppId]
+  );
 
   function handleOpen(v: boolean) {
     setOpen(v);
@@ -106,7 +113,6 @@ export function GrantRoleModal({ apps, users, prefillUserId, prefillEmployeeId }
               </label>
 
               {prefillUserId ? (
-                /* Pre-filled from User Detail page — show readonly */
                 <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700">
                   <span className="font-mono font-semibold">{prefillEmployeeId}</span>
                   {selectedUser?.displayName && (
@@ -153,13 +159,21 @@ export function GrantRoleModal({ apps, users, prefillUserId, prefillEmployeeId }
               {errors.userId && <p className="text-rose-600 text-xs mt-1">{errors.userId.message}</p>}
             </div>
 
-            {/* App */}
+            {/* App — dropdown */}
             <div>
               <label className="text-slate-800 text-sm font-semibold mb-2 block">
                 App <span className="text-rose-600">*</span>
               </label>
-              <select {...register('appId')} className={fieldClass(!!errors.appId)}>
-                <option value="">Select app…</option>
+              <select
+                {...register('appId', {
+                  onChange: () => {
+                    // Reset role when app changes so a stale role isn't carried over
+                    if (getValues('role')) setValue('role', '');
+                  },
+                })}
+                className={fieldClass(!!errors.appId)}
+              >
+                <option value="">— Select app —</option>
                 {apps.map((a) => (
                   <option key={a.appId} value={a.appId}>{a.displayName} ({a.appId})</option>
                 ))}
@@ -167,13 +181,30 @@ export function GrantRoleModal({ apps, users, prefillUserId, prefillEmployeeId }
               {errors.appId && <p className="text-rose-600 text-xs mt-1">{errors.appId.message}</p>}
             </div>
 
-            {/* Role */}
+            {/* Role — dropdown when app has defined roles, free text otherwise */}
             <div>
               <label className="text-slate-800 text-sm font-semibold mb-2 block">
                 Role <span className="text-rose-600">*</span>
               </label>
-              <input {...register('role')} placeholder="e.g. ADMIN, QMS_VIEWER" className={fieldClass(!!errors.role)} />
+              {rolesForApp.length > 0 ? (
+                <select {...register('role')} className={fieldClass(!!errors.role)}>
+                  <option value="">— Select role —</option>
+                  {rolesForApp.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  {...register('role')}
+                  placeholder={selectedAppId ? 'e.g. ADMIN, QMS_VIEWER' : 'Select an app first'}
+                  disabled={!selectedAppId}
+                  className={fieldClass(!!errors.role)}
+                />
+              )}
               {errors.role && <p className="text-rose-600 text-xs mt-1">{errors.role.message}</p>}
+              {selectedAppId && rolesForApp.length === 0 && (
+                <p className="text-slate-400 text-xs mt-1">No roles defined for this app — type a custom role.</p>
+              )}
             </div>
 
             {/* Expires */}

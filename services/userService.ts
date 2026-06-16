@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { userRepository } from '@/repositories/userRepository';
 import { identityAccountRepository } from '@/repositories/identityAccountRepository';
+import { externalIdentityLinkRepository } from '@/repositories/externalIdentityLinkRepository';
 import { adminAuditRepository } from '@/repositories/adminAuditRepository';
 import { directorySyncService } from '@/services/directorySyncService';
 import { ConflictError } from '@/errors/customErrors';
@@ -18,6 +19,11 @@ export class UserService {
     if (input.email?.trim()) {
       const byEmail = await userRepository.findByEmail(input.email.trim());
       if (byEmail) throw new ConflictError(`Email "${input.email}" is already in use`);
+    }
+
+    if (input.entraObjectId?.trim()) {
+      const byEntraId = await externalIdentityLinkRepository.findByEntraObjectId(input.entraObjectId.trim());
+      if (byEntraId) throw new ConflictError(`Entra Object ID "${input.entraObjectId}" is already linked to another user`);
     }
 
     const hasPassword = !!input.initialPassword?.trim();

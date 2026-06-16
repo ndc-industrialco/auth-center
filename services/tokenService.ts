@@ -57,8 +57,8 @@ export class TokenService {
       });
       const claims = payload as unknown as AuthCenterTokenClaims;
 
-      if (!claims.sessionId) {
-        throw new UnauthorizedError('Token session is missing');
+      if (!claims.sessionId || !claims.userId || !claims.employeeId || !claims.authMethod) {
+        throw new UnauthorizedError('Token is missing required claims');
       }
 
       const sessionValid = await sessionService.isSessionValid(claims.sessionId);

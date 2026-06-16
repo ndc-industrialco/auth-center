@@ -79,6 +79,56 @@ export class DepartmentRepository extends BaseRepository<Department> {
       },
     });
   }
+
+  async findWithMembersAndRoles(code: string, appId: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).department.findUnique({
+      where: { code },
+      include: {
+        profiles: {
+          where: { user: { employmentStatus: 'ACTIVE' } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                employeeId: true,
+                displayName: true,
+                email: true,
+                m365Linked: true,
+                roleGrants: {
+                  where: {
+                    isActive: true,
+                    app: { appId },
+                    OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+                  },
+                  select: { role: true },
+                },
+              },
+            },
+          },
+          orderBy: { user: { displayName: 'asc' } },
+        },
+      },
+    });
+  }
+
+  async findWithMembersAndLinks(code: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).department.findUnique({
+      where: { code },
+      include: {
+        profiles: {
+          where: { user: { employmentStatus: 'ACTIVE', m365Linked: true } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                externalLinks: { select: { entraObjectId: true }, take: 1 },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
 
 export const departmentRepository = new DepartmentRepository();

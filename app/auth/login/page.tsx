@@ -1,5 +1,6 @@
 import { LoginPageClient } from './LoginPageClient';
 import { getPublicBaseUrl } from '@/lib/publicUrl';
+import type { Metadata } from 'next';
 
 interface Props {
   searchParams: Promise<{
@@ -9,6 +10,11 @@ interface Props {
     state?: string;
   }>;
 }
+
+export const metadata: Metadata = {
+  title: 'NDC Sign In',
+  description: 'NDC Enterprise Identity and Authorization Hub - Sign In',
+};
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams;

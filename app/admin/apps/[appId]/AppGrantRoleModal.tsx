@@ -23,9 +23,10 @@ interface User { id: string; employeeId: string; displayName: string | null; }
 interface Props {
   appId: string;
   users: User[];
+  availableRoles: string[];
 }
 
-export function AppGrantRoleModal({ appId, users }: Props) {
+export function AppGrantRoleModal({ appId, users, availableRoles }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [userSearch, setUserSearch] = useState('');
@@ -107,7 +108,6 @@ export function AppGrantRoleModal({ appId, users }: Props) {
                 value={userSearch}
                 onChange={(e) => {
                   setUserSearch(e.target.value);
-                  // clear selection when user types again
                   if (selectedUserId) setValue('userId', '', { shouldValidate: false });
                 }}
                 placeholder="Search by Employee ID or name…"
@@ -139,16 +139,25 @@ export function AppGrantRoleModal({ appId, users }: Props) {
               {errors.userId && <p className="text-rose-600 text-xs mt-1">{errors.userId.message}</p>}
             </div>
 
-            {/* Role */}
+            {/* Role — dropdown when roles are defined, free text otherwise */}
             <div>
               <label className="text-slate-800 text-sm font-semibold mb-2 block">
                 Role <span className="text-rose-600">*</span>
               </label>
-              <input
-                {...register('role')}
-                placeholder="e.g. ADMIN, USER, VIEWER"
-                className={fieldClass(!!errors.role)}
-              />
+              {availableRoles.length > 0 ? (
+                <select {...register('role')} className={fieldClass(!!errors.role)}>
+                  <option value="">— Select role —</option>
+                  {availableRoles.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  {...register('role')}
+                  placeholder="e.g. ADMIN, USER, VIEWER"
+                  className={fieldClass(!!errors.role)}
+                />
+              )}
               {errors.role && <p className="text-rose-600 text-xs mt-1">{errors.role.message}</p>}
             </div>
 

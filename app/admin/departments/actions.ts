@@ -57,6 +57,19 @@ export async function deleteDepartmentAction(code: string): Promise<DepartmentAc
   }
 }
 
+export async function syncDepartmentToM365Action(code: string): Promise<DepartmentActionResult> {
+  try {
+    const actor = await getActor();
+    const result = await departmentService.syncToM365(actor, code);
+    return {
+      ok: true,
+      message: `Pushed to M365: ${result.synced} user${result.synced !== 1 ? 's' : ''} updated${result.skipped > 0 ? `, ${result.skipped} skipped (no Entra link)` : ''}`,
+    };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Failed to sync to M365' };
+  }
+}
+
 export async function syncDepartmentsFromM365Action(): Promise<DepartmentActionResult> {
   try {
     const actor = await getActor();

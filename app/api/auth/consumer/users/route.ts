@@ -19,7 +19,6 @@ const createUserSchema = z.object({
   department: z.string().max(200).optional(),
   jobTitle: z.string().max(200).optional(),
   initialPassword: z.string().min(5).max(128).optional(),
-  initialRole: z.string().max(100).optional(),
 });
 
 export async function GET(request: NextRequest) {

@@ -15,6 +15,7 @@ Auth Center คือระบบ Authentication & Authorization กลางส
 | [05-profile.md](05-profile.md) | อัปเดต Profile (ตัวเอง / Admin) |
 | [06-send-mail.md](06-send-mail.md) | ส่งอีเมลแบบ Delegated ผ่าน Auth Center |
 | [07-admin-ui.md](07-admin-ui.md) | คู่มือการใช้ Admin UI |
+| [08-nextjs-consumer-app.md](08-nextjs-consumer-app.md) | สร้าง Next.js Consumer App ใหม่ (แบบ QMS) |
 
 ---
 
