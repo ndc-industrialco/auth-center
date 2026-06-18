@@ -127,8 +127,7 @@ jobs:
           cd /opt/auth-center
 
           export IMAGE_TAG
-          docker compose pull migrate auth-center
-          docker compose run --rm migrate
+          docker compose pull auth-center
           docker compose up -d --remove-orphans auth-center
           docker image prune -f
 
