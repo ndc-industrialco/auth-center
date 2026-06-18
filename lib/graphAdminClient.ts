@@ -57,7 +57,7 @@ function getGraphAppConfig() {
   return { tenantId, clientId, clientSecret };
 }
 
-async function getGraphAdminAccessToken(): Promise<string> {
+export async function getGraphAdminAccessToken(): Promise<string> {
   const cached = globalForGraphToken.graphAdminToken;
   if (cached && cached.expiresAt > Date.now() + 60_000) {
     return cached.accessToken;
