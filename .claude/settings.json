@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(New-Item -ItemType Directory -Force \"d:\\\\NDC_042\\\\NextJS\\\\auth-center\\\\app\\\\api\\\\auth\\\\consumer\\\\graph\\\\[...path]\")",
-      "Bash(Out-Null)"
+      "Bash(Out-Null)",
+      "PowerShell(Get-Content \"C:\\\\Users\\\\NDC12\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--NDC-042-NextJS-auth-center\\\\604beb3a-bdaa-4077-8217-f826d6547f98\\\\tasks\\\\blouitb3n.output\" -Wait -Tail 20)"
     ],
     "additionalDirectories": [
       "d:\\NDC_042\\NextJS\\auth-center\\app\\api\\auth\\consumer\\graph"
