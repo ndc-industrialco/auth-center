@@ -211,3 +211,42 @@ export async function removeGraphGroupMember(groupId: string, entraObjectId: str
     method: 'DELETE',
   });
 }
+
+/**
+ * Forward an arbitrary Graph API request using app-only credentials.
+ * `path` must start with `/` (e.g. `/users/{id}/sendMail`).
+ * Returns the raw Response so the caller can stream/parse it.
+ */
+export async function graphProxyRequest(
+  path: string,
+  method: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>
+): Promise<Response> {
+  const token = await getGraphAdminAccessToken();
+  return fetch(`${GRAPH_BASE_URL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...(extraHeaders ?? {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+}
+
+/**
+ * Forward an arbitrary Graph API request scoped to a specific user (delegated).
+ * Rewrites the path so `/me/...` becomes `/users/{upn}/...`.
+ * Uses app-only token with Mail.Send / Calendars.ReadWrite / etc. application permissions.
+ */
+export async function graphDelegatedProxyRequest(
+  userUpn: string,
+  path: string,
+  method: string,
+  body?: unknown
+): Promise<Response> {
+  // Replace /me or /me/ prefix with /users/{upn}
+  const resolved = path.replace(/^\/me(\/|$)/, `/users/${encodeURIComponent(userUpn)}$1`);
+  return graphProxyRequest(resolved, method, body);
+}

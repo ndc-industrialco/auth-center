@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { entraAuthService } from '@/services/entraAuthService';
 import { sessionService } from '@/services/sessionService';
 import { credentialService } from '@/services/credentialService';
@@ -182,6 +183,30 @@ export async function grantRoleFromUserAction(userId: string, formData: FormData
     if (e instanceof ZodError) return { ok: false, error: e.issues[0]?.message };
     if (e instanceof Error) return { ok: false, error: e.message };
     return { ok: false, error: 'Failed to grant role' };
+  }
+}
+
+export async function toggleDelegatedMailAction(userId: string, enable: boolean): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: 'Not authenticated' };
+  const actorId = getActor(session);
+  try {
+    const user = await db.user.findUnique({ where: { id: userId }, select: { m365Linked: true } });
+    if (!user) return { ok: false, error: 'User not found' };
+    if (enable && !user.m365Linked) return { ok: false, error: 'User must be M365-linked to enable delegated mail' };
+    await db.user.update({ where: { id: userId }, data: { canSendDelegatedMail: enable } });
+    await adminAuditRepository.record({
+      actorId,
+      action: enable ? 'PERMISSION_GRANTED' : 'PERMISSION_REVOKED',
+      resourceType: 'User',
+      targetUserId: userId,
+      detail: { permission: 'canSendDelegatedMail', value: enable },
+    });
+    revalidatePath(`/admin/users/${userId}`);
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof Error) return { ok: false, error: e.message };
+    return { ok: false, error: 'Failed to update delegated mail permission' };
   }
 }
 

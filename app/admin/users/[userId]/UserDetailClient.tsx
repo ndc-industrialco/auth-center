@@ -18,6 +18,7 @@ import {
   updateUserProfileAction,
   grantRoleFromUserAction,
   syncUserFromM365DetailAction,
+  toggleDelegatedMailAction,
 } from './actions';
 
 const linkSchema = z.object({
@@ -503,6 +504,38 @@ export function SyncUserFromM365Button({ userId, disabled }: { userId: string; d
       title={disabled ? 'Link Entra identity before syncing' : 'Sync this user from Microsoft 365'}
     >
       {isPending ? 'Syncing...' : 'Sync From M365'}
+    </Button>
+  );
+}
+
+export function ToggleDelegatedMailButton({
+  userId,
+  enabled,
+  m365Linked,
+}: {
+  userId: string;
+  enabled: boolean;
+  m365Linked: boolean;
+}) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleToggle() {
+    startTransition(async () => {
+      const result = await toggleDelegatedMailAction(userId, !enabled);
+      if (result.ok) toast.success(enabled ? 'Delegated mail disabled' : 'Delegated mail enabled');
+      else toast.error(result.error ?? 'Failed to update delegated mail');
+    });
+  }
+
+  return (
+    <Button
+      variant={enabled ? 'danger' : 'primary'}
+      size="sm"
+      disabled={isPending || (!enabled && !m365Linked)}
+      onClick={handleToggle}
+      title={!m365Linked ? 'Requires M365 link' : undefined}
+    >
+      {isPending ? 'Saving...' : enabled ? 'Disable Delegated Mail' : 'Enable Delegated Mail'}
     </Button>
   );
 }

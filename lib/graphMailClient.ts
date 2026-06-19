@@ -45,6 +45,7 @@ export interface MailMessage {
   toName?:  string;
   subject:  string;
   htmlBody: string;
+  cc?: { email: string; name?: string }[];
 }
 
 /**
@@ -73,6 +74,9 @@ export async function sendMailAsUser(
           },
         },
       ],
+      ...(message.cc?.length
+        ? { ccRecipients: message.cc.map((r) => ({ emailAddress: { address: r.email, name: r.name ?? r.email } })) }
+        : {}),
     },
     saveToSentItems: false,
   };

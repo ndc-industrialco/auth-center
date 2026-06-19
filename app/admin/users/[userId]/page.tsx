@@ -12,6 +12,7 @@ import {
   EditProfileModal,
   GrantRoleFromUserModal,
   SyncUserFromM365Button,
+  ToggleDelegatedMailButton,
 } from './UserDetailClient';
 
 interface Props {
@@ -108,8 +109,13 @@ export default async function UserDetailPage({ params }: Props) {
                 <p className="text-slate-400 font-mono">Linked {entraLink.linkedAt.toISOString().slice(0, 10)} via {entraLink.linkedByMethod}</p>
               </div>
             )}
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2 flex-wrap pt-1">
               {user.m365Linked ? <UnlinkEntraButton userId={user.id} /> : <LinkEntraModal userId={user.id} />}
+              <ToggleDelegatedMailButton
+                userId={user.id}
+                enabled={user.canSendDelegatedMail}
+                m365Linked={user.m365Linked}
+              />
             </div>
           </div>
 

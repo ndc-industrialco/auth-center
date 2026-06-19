@@ -33,6 +33,7 @@ export class MailService {
         toName:   input.toName,
         subject:  input.subject,
         htmlBody: input.htmlBody,
+        cc:       input.cc,
       });
       logger.info('Delegated mail sent', { senderUserId: input.senderUserId, toEmail: input.toEmail });
     } catch (err) {
