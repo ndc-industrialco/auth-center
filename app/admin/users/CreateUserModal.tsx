@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -57,12 +57,12 @@ export function CreateUserModal({ departments, emailGroups }: Props) {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  const entraObjectId = watch('entraObjectId');
+  const entraObjectId = useWatch({ control, name: 'entraObjectId' });
   const showGroups = !!entraObjectId?.trim() && emailGroups.length > 0;
 
   function handleClose(v: boolean) {

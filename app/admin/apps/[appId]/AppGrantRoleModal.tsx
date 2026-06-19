@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -31,11 +31,11 @@ export function AppGrantRoleModal({ appId, users, availableRoles }: Props) {
   const [isPending, startTransition] = useTransition();
   const [userSearch, setUserSearch] = useState('');
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
 
-  const selectedUserId = watch('userId');
+  const selectedUserId = useWatch({ control, name: 'userId' });
 
   const filteredUsers = useMemo(() => {
     const q = userSearch.toLowerCase();

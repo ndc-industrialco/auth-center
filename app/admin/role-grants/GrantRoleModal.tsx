@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -34,13 +34,13 @@ export function GrantRoleModal({ apps, users, prefillUserId, prefillEmployeeId }
   const [isPending, startTransition] = useTransition();
   const [userSearch, setUserSearch] = useState(prefillEmployeeId ?? '');
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors }, getValues } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors }, getValues } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { userId: prefillUserId ?? '' },
   });
 
-  const selectedUserId = watch('userId');
-  const selectedAppId  = watch('appId');
+  const selectedUserId = useWatch({ control, name: 'userId' });
+  const selectedAppId  = useWatch({ control, name: 'appId' });
 
   const filteredUsers = useMemo(() => {
     const q = userSearch.toLowerCase();
