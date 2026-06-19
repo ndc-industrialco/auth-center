@@ -41,11 +41,16 @@ async function getAppToken(): Promise<string> {
 }
 
 export interface MailMessage {
-  toEmail:  string;
-  toName?:  string;
-  subject:  string;
-  htmlBody: string;
+  toEmail:     string;
+  toName?:     string;
+  subject:     string;
+  htmlBody:    string;
   cc?: { email: string; name?: string }[];
+  attachments?: Array<{
+    name:         string;
+    contentType:  string;
+    contentBytes: string; // base64
+  }>;
 }
 
 /**
@@ -76,6 +81,16 @@ export async function sendMailAsUser(
       ],
       ...(message.cc?.length
         ? { ccRecipients: message.cc.map((r) => ({ emailAddress: { address: r.email, name: r.name ?? r.email } })) }
+        : {}),
+      ...(message.attachments?.length
+        ? {
+            attachments: message.attachments.map((a) => ({
+              "@odata.type":  "#microsoft.graph.fileAttachment",
+              name:           a.name,
+              contentType:    a.contentType,
+              contentBytes:   a.contentBytes,
+            })),
+          }
         : {}),
     },
     saveToSentItems: false,

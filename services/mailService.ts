@@ -29,11 +29,12 @@ export class MailService {
 
     try {
       await sendMailAsUser(senderUpn, {
-        toEmail:  input.toEmail,
-        toName:   input.toName,
-        subject:  input.subject,
-        htmlBody: input.htmlBody,
-        cc:       input.cc,
+        toEmail:     input.toEmail,
+        toName:      input.toName,
+        subject:     input.subject,
+        htmlBody:    input.htmlBody,
+        cc:          input.cc,
+        attachments: input.attachments,
       });
       logger.info('Delegated mail sent', { senderUserId: input.senderUserId, toEmail: input.toEmail });
     } catch (err) {
