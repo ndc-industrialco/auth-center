@@ -26,6 +26,9 @@ const NO_ACCESS = '';
 
 export function UserRoleRoster({ appId, availableRoles, users }: Props) {
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [sortCol, setSortCol] = useState<'id' | 'name' | 'dept' | 'role'>('id');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   // optimistic role map: userId → role | null
   const [roleMap, setRoleMap] = useState<Record<string, string | null>>(() =>
     Object.fromEntries(users.map((u) => [u.id, u.currentRole]))
@@ -40,16 +43,39 @@ export function UserRoleRoster({ appId, availableRoles, users }: Props) {
 
   const hasRoleOptions = availableRoles.length > 0;
 
+  function handleSort(col: typeof sortCol) {
+    if (col === sortCol) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortCol(col); setSortDir('asc'); }
+  }
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
-        u.employeeId.toLowerCase().includes(q) ||
-        (u.displayName ?? '').toLowerCase().includes(q) ||
-        (u.department ?? '').toLowerCase().includes(q),
-    );
-  }, [users, search]);
+    return users.filter((u) => {
+      if (roleFilter === '__none__' && roleMap[u.id]) return false;
+      if (roleFilter && roleFilter !== '__none__' && roleMap[u.id] !== roleFilter) return false;
+      if (q) {
+        return (
+          u.employeeId.toLowerCase().includes(q) ||
+          (u.displayName ?? '').toLowerCase().includes(q) ||
+          (u.department ?? '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [users, search, roleFilter, roleMap]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      let av: string, bv: string;
+      switch (sortCol) {
+        case 'name': av = a.displayName ?? ''; bv = b.displayName ?? ''; break;
+        case 'dept': av = a.department ?? ''; bv = b.department ?? ''; break;
+        case 'role': av = roleMap[a.id] ?? ''; bv = roleMap[b.id] ?? ''; break;
+        default: av = a.employeeId; bv = b.employeeId;
+      }
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }, [filtered, sortCol, sortDir, roleMap]);
 
   const handleRoleChange = useCallback(
     async (userId: string, newRole: string | null) => {
@@ -97,20 +123,32 @@ export function UserRoleRoster({ appId, availableRoles, users }: Props) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1">
+      <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
+        <div className="flex-1 min-w-0">
           <h2 className="text-base font-semibold text-slate-800">User Roster</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             {grantedCount} of {users.length} users have access
+            {sorted.length !== users.length && ` · showing ${sorted.length}`}
           </p>
         </div>
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by ID, name or department…"
-          className="w-full sm:w-64 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-[#0F1059] bg-slate-50/50"
-        />
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by ID, name or department…"
+            className="w-full sm:w-56 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-[#0F1059] bg-slate-50/50"
+          />
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:border-[#0F1059]"
+          >
+            <option value="">All Roles</option>
+            <option value="__none__">No Access</option>
+            {availableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Bulk Assign Bar */}
@@ -173,8 +211,8 @@ export function UserRoleRoster({ appId, availableRoles, users }: Props) {
         </div>
       )}
 
-      {filtered.length === 0 ? (
-        <div className="py-12 text-center text-sm text-slate-400">No users match your search.</div>
+      {sorted.length === 0 ? (
+        <div className="py-12 text-center text-sm text-slate-400">No users match your filters.</div>
       ) : (
         <>
           {/* Desktop */}
@@ -182,14 +220,29 @@ export function UserRoleRoster({ appId, availableRoles, users }: Props) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="text-slate-500 text-xs font-medium px-6 py-2.5 text-left">Employee</th>
-                  <th className="text-slate-500 text-xs font-medium px-4 py-2.5 text-left">Department</th>
+                  <th
+                    className="text-slate-500 text-xs font-medium px-6 py-2.5 text-left cursor-pointer select-none hover:text-[#0F1059]"
+                    onClick={() => handleSort('id')}
+                  >
+                    Employee{sortCol === 'id' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+                  </th>
+                  <th
+                    className="text-slate-500 text-xs font-medium px-4 py-2.5 text-left cursor-pointer select-none hover:text-[#0F1059]"
+                    onClick={() => handleSort('dept')}
+                  >
+                    Department{sortCol === 'dept' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+                  </th>
                   <th className="text-slate-500 text-xs font-medium px-4 py-2.5 text-left">Email</th>
-                  <th className="text-slate-500 text-xs font-medium px-4 py-2.5 text-left w-52">Role</th>
+                  <th
+                    className="text-slate-500 text-xs font-medium px-4 py-2.5 text-left w-52 cursor-pointer select-none hover:text-[#0F1059]"
+                    onClick={() => handleSort('role')}
+                  >
+                    Role{sortCol === 'role' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filtered.map((user) => {
+                {sorted.map((user) => {
                   const currentRole = roleMap[user.id] ?? null;
                   const isPending = pendingUsers.has(user.id);
                   return (
@@ -235,7 +288,7 @@ export function UserRoleRoster({ appId, availableRoles, users }: Props) {
 
           {/* Mobile */}
           <div className="lg:hidden divide-y divide-slate-100">
-            {filtered.map((user) => {
+            {sorted.map((user) => {
               const currentRole = roleMap[user.id] ?? null;
               const isPending = pendingUsers.has(user.id);
               return (

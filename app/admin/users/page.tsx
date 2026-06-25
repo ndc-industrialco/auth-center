@@ -1,28 +1,42 @@
 import Link from 'next/link';
+import type { Prisma } from '@/app/generated/prisma/client';
 import { db } from '@/lib/db';
 import { Badge } from '@/components/ui/badge';
 import { CreateUserModal } from './CreateUserModal';
 import { SyncUserButton } from './SyncUserButton';
+import { UsersFilterBar } from './UsersFilterBar';
 
 interface Props {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; m365?: string; delegated?: string; sort?: string; order?: string }>;
 }
 
-async function getUsers(query?: string) {
-  const where = query
-    ? {
-        OR: [
-          { employeeId: { contains: query, mode: 'insensitive' as const } },
-          { displayName: { contains: query, mode: 'insensitive' as const } },
-          { email: { contains: query, mode: 'insensitive' as const } },
-        ],
-      }
-    : {};
+async function getUsers(query?: string, status?: string, m365?: string, delegated?: string, sort = 'created', order: 'asc' | 'desc' = 'desc') {
+  const dir = order === 'asc' ? 'asc' as const : 'desc' as const;
+  let orderBy: Prisma.UserOrderByWithRelationInput;
+  if (sort === 'id') orderBy = { employeeId: dir };
+  else if (sort === 'name') orderBy = { displayName: { sort: dir, nulls: 'last' } };
+  else if (sort === 'email') orderBy = { email: { sort: dir, nulls: 'last' } };
+  else if (sort === 'delegated') orderBy = { canSendDelegatedMail: dir };
+  else orderBy = { createdAt: dir };
+
+  const where: Prisma.UserWhereInput = {};
+  if (query) {
+    where.OR = [
+      { employeeId: { contains: query, mode: 'insensitive' } },
+      { displayName: { contains: query, mode: 'insensitive' } },
+      { email: { contains: query, mode: 'insensitive' } },
+    ];
+  }
+  if (status) where.employmentStatus = status;
+  if (m365 === 'linked') where.m365Linked = true;
+  else if (m365 === 'unlinked') where.m365Linked = false;
+  if (delegated === 'enabled') where.canSendDelegatedMail = true;
+  else if (delegated === 'disabled') where.canSendDelegatedMail = false;
 
   return db.user.findMany({
     where,
     include: { externalLinks: { select: { id: true } }, localCredential: { select: { id: true } } },
-    orderBy: { createdAt: 'desc' },
+    orderBy,
     take: 100,
   });
 }
@@ -44,12 +58,31 @@ async function getDepartmentsAndGroups() {
   return { departments, emailGroups };
 }
 
+function sortHref(col: string, cur: string, ord: string, q?: string, status?: string, m365?: string, delegated?: string) {
+  const p = new URLSearchParams();
+  if (q) p.set('q', q);
+  if (status) p.set('status', status);
+  if (m365) p.set('m365', m365);
+  if (delegated) p.set('delegated', delegated);
+  p.set('sort', col);
+  p.set('order', cur === col && ord === 'asc' ? 'desc' : 'asc');
+  return `/admin/users?${p}`;
+}
+
+function si(col: string, cur: string, ord: string) {
+  if (col !== cur) return <span className="ml-1 text-slate-300 font-normal">↕</span>;
+  return <span className="ml-1 text-[#0F1059] font-normal">{ord === 'asc' ? '↑' : '↓'}</span>;
+}
+
 export default async function AdminUsersPage({ searchParams }: Props) {
-  const { q } = await searchParams;
+  const { q, status, m365, delegated, sort = 'created', order = 'desc' } = await searchParams;
+
   const [users, { departments, emailGroups }] = await Promise.all([
-    getUsers(q),
+    getUsers(q, status, m365, delegated, sort, order as 'asc' | 'desc'),
     getDepartmentsAndGroups(),
   ]);
+
+  const hasFilter = !!(q || status || m365 || delegated);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -67,28 +100,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-        <form method="GET" className="flex items-center gap-3 p-4 border-b border-slate-100">
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Search by Employee ID, name, or email..."
-            className="flex-1 bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-[#0F1059] focus:bg-white transition-colors"
-          />
-          <button
-            type="submit"
-            className="h-11 px-4 rounded-xl bg-[#0F1059] text-white text-sm font-medium hover:bg-[#161875] transition-colors"
-          >
-            Search
-          </button>
-          {q && (
-            <Link
-              href="/admin/users"
-              className="h-11 px-4 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center"
-            >
-              Clear
-            </Link>
-          )}
-        </form>
+        <UsersFilterBar q={q} status={status} m365={m365} delegated={delegated} sort={sort} order={order} hasFilter={hasFilter} />
 
         {users.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -97,7 +109,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             </div>
             <p className="text-slate-800 font-semibold text-base mb-1">No users found</p>
             <p className="text-slate-400 text-sm">
-              {q ? 'Try a different search term.' : 'Users are created automatically on first sign-in.'}
+              {hasFilter ? 'Try different filters.' : 'Users are created automatically on first sign-in.'}
             </p>
           </div>
         ) : (
@@ -106,13 +118,34 @@ export default async function AdminUsersPage({ searchParams }: Props) {
               <table className="w-full">
                 <thead className="bg-white border-b border-slate-100">
                   <tr>
-                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">Employee ID</th>
-                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">Name</th>
-                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">Email</th>
+                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">
+                      <Link href={sortHref('id', sort, order, q, status, m365, delegated)} className="hover:text-[#0F1059] flex items-center gap-0.5">
+                        Employee ID{si('id', sort, order)}
+                      </Link>
+                    </th>
+                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">
+                      <Link href={sortHref('name', sort, order, q, status, m365, delegated)} className="hover:text-[#0F1059] flex items-center gap-0.5">
+                        Name{si('name', sort, order)}
+                      </Link>
+                    </th>
+                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-left">
+                      <Link href={sortHref('email', sort, order, q, status, m365, delegated)} className="hover:text-[#0F1059] flex items-center gap-0.5">
+                        Email{si('email', sort, order)}
+                      </Link>
+                    </th>
                     <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-center">Auth</th>
                     <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-center">M365</th>
+                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-center">
+                      <Link href={sortHref('delegated', sort, order, q, status, m365, delegated)} className="hover:text-[#0F1059] inline-flex items-center gap-0.5">
+                        Delegated Mail{si('delegated', sort, order)}
+                      </Link>
+                    </th>
                     <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-center">Status</th>
-                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-right">Actions</th>
+                    <th className="text-slate-800 text-sm font-semibold px-4 py-3 text-right">
+                      <Link href={sortHref('created', sort, order, q, status, m365, delegated)} className="hover:text-[#0F1059] flex items-center justify-end gap-0.5">
+                        Created{si('created', sort, order)}
+                      </Link>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -128,12 +161,16 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                         <Badge label={u.m365Linked ? 'Linked' : 'Local only'} variant={u.m365Linked ? 'success' : 'neutral'} />
                       </td>
                       <td className="px-4 py-3 text-center">
+                        <Badge label={u.canSendDelegatedMail ? 'Enabled' : 'Disabled'} variant={u.canSendDelegatedMail ? 'success' : 'neutral'} />
+                      </td>
+                      <td className="px-4 py-3 text-center">
                         <Badge label={u.employmentStatus} variant={STATUS_VARIANT[u.employmentStatus] ?? 'neutral'} />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-right font-mono text-xs text-slate-400">
                         <div className="flex items-center justify-end gap-2">
+                          <span>{u.createdAt.toISOString().slice(0, 10)}</span>
                           <SyncUserButton userId={u.id} linked={u.m365Linked} size="sm" variant="ghost" />
-                          <Link href={`/admin/users/${u.id}`} className="text-[#0F1059] text-sm font-medium hover:underline">
+                          <Link href={`/admin/users/${u.id}`} className="text-[#0F1059] text-sm font-medium hover:underline font-sans">
                             Manage
                           </Link>
                         </div>

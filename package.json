@@ -15,7 +15,8 @@
     "seed:admin:reset-password": "tsx scripts/reset-admin-password.ts",
     "ci:check": "npx prisma generate && npm run lint && npm test",
     "ci:local": "bash scripts/ci-local.sh",
-    "hooks:install": "bash scripts/install-hooks.sh"
+    "hooks:install": "bash scripts/install-hooks.sh",
+    "mail:enable-delegated": "tsx scripts/enable-delegated-mail.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
