@@ -2,8 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { userService } from '@/services/userService';
 import { directorySyncService } from '@/services/directorySyncService';
+import { adminAuditRepository } from '@/repositories/adminAuditRepository';
 import { createUserSchema } from '@/schemas/adminSchema';
 import { ZodError } from 'zod';
 import type { Session } from 'next-auth';
@@ -42,6 +44,30 @@ export async function createUserAction(formData: FormData): Promise<ActionResult
     if (e instanceof ZodError) return { ok: false, error: e.issues[0]?.message };
     if (e instanceof Error) return { ok: false, error: e.message };
     return { ok: false, error: 'Failed to create user' };
+  }
+}
+
+export async function bulkToggleDelegatedMailAction(userIds: string[], enable: boolean): Promise<ActionResult & { skipped?: number }> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, error: 'Not authenticated' };
+  const actorId = getActor(session);
+  try {
+    const users = await db.user.findMany({ where: { id: { in: userIds } }, select: { id: true, m365Linked: true } });
+    const eligible = enable ? users.filter(u => u.m365Linked) : users;
+    const skipped = users.length - eligible.length;
+    if (eligible.length === 0) return { ok: false, error: 'No eligible users (must be M365-linked to enable)', skipped };
+    await db.user.updateMany({ where: { id: { in: eligible.map(u => u.id) } }, data: { canSendDelegatedMail: enable } });
+    await adminAuditRepository.record({
+      actorId,
+      action: enable ? 'PERMISSION_GRANTED' : 'PERMISSION_REVOKED',
+      resourceType: 'User',
+      detail: { permission: 'canSendDelegatedMail', value: enable, userIds: eligible.map(u => u.id) },
+    });
+    revalidatePath('/admin/users');
+    return { ok: true, skipped };
+  } catch (e) {
+    if (e instanceof Error) return { ok: false, error: e.message };
+    return { ok: false, error: 'Failed to update delegated mail permission' };
   }
 }
 
