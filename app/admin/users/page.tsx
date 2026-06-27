@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Prisma } from '@/app/generated/prisma/client';
+import type { Prisma, $Enums } from '@/app/generated/prisma/client';
 import { db } from '@/lib/db';
 import { Badge } from '@/components/ui/badge';
 import { CreateUserModal } from './CreateUserModal';
@@ -27,7 +27,7 @@ async function getUsers(query?: string, status?: string, m365?: string, delegate
       { email: { contains: query, mode: 'insensitive' } },
     ];
   }
-  if (status) where.employmentStatus = status;
+  if (status) where.employmentStatus = status as $Enums.EmploymentStatus;
   if (m365 === 'linked') where.m365Linked = true;
   else if (m365 === 'unlinked') where.m365Linked = false;
   if (delegated === 'enabled') where.canSendDelegatedMail = true;
