@@ -52,7 +52,7 @@ export class EntraAuthService {
               email:       profile.email,
               displayName: profile.name,
               m365Linked:  true,
-              canSendDelegatedMail: false,
+              canSendDelegatedMail: true,
               defaultAuthMethod: 'ENTRA',
             },
             tx

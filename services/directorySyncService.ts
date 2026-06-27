@@ -94,7 +94,7 @@ export class DirectorySyncService {
       email: graphUser.mail ?? graphUser.userPrincipalName ?? null,
       displayName: graphUser.displayName ?? employeeId,
       m365Linked: true,
-      canSendDelegatedMail: false,
+      canSendDelegatedMail: true,
       defaultAuthMethod: 'ENTRA' as const,
       employmentStatus: graphUser.accountEnabled === false ? 'INACTIVE' as const : 'ACTIVE' as const,
     };
