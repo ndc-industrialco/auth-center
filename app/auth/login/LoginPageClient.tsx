@@ -87,7 +87,7 @@ export function LoginPageClient({
     });
   }
 
-  const YT_ID = "XKch3HFovaQ";
+  const YT_ID = "aRlbGA5qQa4";
   const YT_SRC =
     `https://www.youtube-nocookie.com/embed/${YT_ID}` +
     `?autoplay=1&mute=1&loop=1&playlist=${YT_ID}` +
