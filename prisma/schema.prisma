@@ -28,6 +28,7 @@ model User {
   sessions             UserSession[]
   consumerAppSessions  ConsumerAppSession[]
   groupMemberships     EmailGroupMember[]
+  mailSenderForApps    AppRegistration[]
 
   @@index([employeeId])
   @@index([email])
@@ -120,12 +121,15 @@ model AppRegistration {
   availableRoles      String[]            @default([])
   isActive            Boolean             @default(true)
   secretHash          String?
+  /// userId whose Entra identity is used as From address when this app sends mail via M2M
+  mailSenderUserId    String?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   permissionGrants    PermissionGrant[]
   roleGrants          RoleGrant[]
   defaultRolePolicies DefaultRolePolicy[]
   consumerAppSessions ConsumerAppSession[]
+  mailSender          User?               @relation(fields: [mailSenderUserId], references: [id], onDelete: SetNull)
 
   @@index([appId])
   @@map("app_registrations")
