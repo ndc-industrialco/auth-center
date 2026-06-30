@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -50,6 +50,13 @@ export function LoginPageClient({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [lang, setLang] = useState<Lang>('th');
+  const [slide, setSlide] = useState(0);
+  const SLIDES = ['/background/01.webp', '/background/02.webp', '/background/03.webp', '/background/04.webp', '/background/05.webp', '/background/06.webp'];
+
+  useEffect(() => {
+    const id = setInterval(() => setSlide(s => (s + 1) % SLIDES.length), 4000);
+    return () => clearInterval(id);
+  }, []);
 
   const tx = t[lang];
 
@@ -87,23 +94,20 @@ export function LoginPageClient({
     });
   }
 
-  const YT_ID = "aRlbGA5qQa4";
-  const YT_SRC =
-    `https://www.youtube-nocookie.com/embed/${YT_ID}` +
-    `?autoplay=1&mute=1&loop=1&playlist=${YT_ID}` +
-    `&controls=0&showinfo=0&rel=0&iv_load_policy=3` +
-    `&modestbranding=1&disablekb=1&fs=0&playsinline=1`;
-
   return (
     <main className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
-      {/* YouTube video background */}
+      {/* Background slideshow */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
-        <iframe
-          src={YT_SRC}
-          title="background"
-          allow="autoplay; encrypted-media"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full h-[56.25vw] min-h-full border-0 scale-[1.2] sm:scale-[1.15]"
-        />
+        {SLIDES.map((src, i) => (
+          <Image
+            key={src}
+            src={src}
+            alt=""
+            fill
+            priority={i === 0}
+            className={`object-cover object-center transition-opacity duration-3000 ${i === slide ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ))}
         <div className="absolute inset-0 bg-black/10" />
       </div>
 
