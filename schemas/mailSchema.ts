@@ -21,3 +21,32 @@ export const sendMailSchema = z.object({
 });
 
 export type SendMailInput = z.infer<typeof sendMailSchema>;
+
+const mailFolderSchema = z.enum([
+  'inbox',
+  'sentitems',
+  'archive',
+  'deleteditems',
+  'drafts',
+  'junkemail',
+]);
+
+export const searchMailSchema = z.object({
+  appId: z.string().trim().min(1).max(100),
+  folder: mailFolderSchema.default('inbox'),
+  fromEmail: z.string().trim().email().optional(),
+  keyword: z.string().trim().min(1).max(200).optional(),
+  fromDate: z.iso.datetime({ offset: true }).optional(),
+  toDate: z.iso.datetime({ offset: true }).optional(),
+  limit: z.number().int().min(1).max(1000).default(100),
+}).superRefine((value, ctx) => {
+  if (value.fromDate && value.toDate && value.fromDate > value.toDate) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['toDate'],
+      message: 'toDate must be greater than or equal to fromDate',
+    });
+  }
+});
+
+export type SearchMailInput = z.infer<typeof searchMailSchema>;

@@ -143,3 +143,16 @@
 - The new page is read-only and intended for operational visibility/troubleshooting
 - Filters currently support search, app, status, and pagination
 - [x] Added delegated consumer-app authorization improvements: `requireAppAdmin()` now accepts generic app-scoped IT/admin roles (for example `QMS_IT`, `HR_CENTER_IT`), and `GET /api/auth/consumer/departments` now allows any authenticated app member token while keeping write operations app-admin-only.
+
+## 2026-07-15 - Consumer Mail Search Gateway
+
+### Delivered
+- Added `POST /api/auth/consumer/mail/search` for CRM consumer apps
+- Added allowlisted folder, sender, keyword, date-range, and result-limit validation
+- Added user-scoped Graph mail search with pagination and normalized message fields
+- Enforced app-scoped JWT, Entra-linked account, and mailbox ownership from token claims; no raw Graph URL or caller-supplied user ID is accepted
+- Added unit coverage for request validation and Graph query/pagination behavior
+
+### Notes
+- Auth Center fetches mail through its existing Graph application credential and returns the result; CRM remains responsible for persistence
+- Production Azure app configuration must include the required Graph mail-read application permission and Exchange mailbox scoping before enabling the endpoint

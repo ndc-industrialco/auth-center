@@ -97,3 +97,17 @@
 
 ### Impact
 - Admin can now verify whether a consumer app really registered login state without querying the database manually
+
+## 2026-07-15 - User-Scoped CRM Mail Search Gateway
+
+### Delivered
+- Added a consumer API for CRM to search the authenticated Entra-linked user's selected mailbox folder
+- Supported sender, keyword, received-date range, bounded result count, and Graph pagination
+- Kept CRM storage outside Auth Center and excluded arbitrary Graph proxy access from the new contract
+- Added schema and Graph client unit tests
+
+### Security review
+- The endpoint derives the mailbox from the verified Auth Center JWT and does not accept a target `userId`
+- Local-authenticated users and users without an M365 link are rejected
+- Request input is Zod-validated and folder names are allowlisted
+- Logs record folder/status only; message body and search criteria are not logged

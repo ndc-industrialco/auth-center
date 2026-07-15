@@ -45,6 +45,24 @@ export interface GraphDirectoryMember {
   '@odata.type'?: string;
 }
 
+export interface GraphMailMessage {
+  id: string;
+  internetMessageId?: string;
+  conversationId?: string;
+  subject?: string;
+  body?: { contentType?: string; content?: string };
+  bodyPreview?: string;
+  from?: { emailAddress?: { address?: string; name?: string } };
+  sender?: { emailAddress?: { address?: string; name?: string } };
+  toRecipients?: Array<{ emailAddress?: { address?: string; name?: string } }>;
+  ccRecipients?: Array<{ emailAddress?: { address?: string; name?: string } }>;
+  receivedDateTime?: string;
+  sentDateTime?: string;
+  hasAttachments?: boolean;
+  webLink?: string;
+  parentFolderId?: string;
+}
+
 function getGraphAppConfig() {
   const tenantId = process.env.AZURE_AD_TENANT_ID;
   const clientId = process.env.AZURE_AD_CLIENT_ID;
@@ -210,6 +228,79 @@ export async function removeGraphGroupMember(groupId: string, entraObjectId: str
   await graphRequest<void>(`/groups/${groupId}/members/${entraObjectId}/$ref`, {
     method: 'DELETE',
   });
+}
+
+const MAIL_SELECT = [
+  'id',
+  'internetMessageId',
+  'conversationId',
+  'subject',
+  'body',
+  'bodyPreview',
+  'from',
+  'sender',
+  'toRecipients',
+  'ccRecipients',
+  'receivedDateTime',
+  'sentDateTime',
+  'hasAttachments',
+  'webLink',
+  'parentFolderId',
+].join(',');
+
+function escapeGraphSearchValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+export async function searchGraphUserMail(input: {
+  userUpn: string;
+  folder: string;
+  fromEmail?: string;
+  keyword?: string;
+  fromDate?: string;
+  toDate?: string;
+  limit: number;
+}): Promise<{ messages: GraphMailMessage[]; hasMore: boolean }> {
+  const params = new URLSearchParams({ '$select': MAIL_SELECT, '$top': String(Math.min(input.limit, 1000)) });
+  const searchClauses = [
+    input.fromEmail ? `from:${escapeGraphSearchValue(input.fromEmail)}` : null,
+    input.keyword ? escapeGraphSearchValue(input.keyword) : null,
+  ].filter((value): value is string => Boolean(value));
+
+  if (searchClauses.length > 0) {
+    params.set('$search', searchClauses.map((clause) => `"${clause}"`).join(' AND '));
+  }
+
+  const dateFilters = [
+    input.fromDate ? `receivedDateTime ge ${input.fromDate}` : null,
+    input.toDate ? `receivedDateTime le ${input.toDate}` : null,
+  ].filter((value): value is string => Boolean(value));
+  if (dateFilters.length > 0) params.set('$filter', dateFilters.join(' and '));
+
+  const firstPath = `/users/${encodeURIComponent(input.userUpn)}/mailFolders/${encodeURIComponent(input.folder)}/messages?${params.toString()}`;
+  const token = await getGraphAdminAccessToken();
+  const messages: GraphMailMessage[] = [];
+  let nextUrl: string | null = `${GRAPH_BASE_URL}${firstPath}`;
+
+  while (nextUrl && messages.length < input.limit) {
+    const response = await fetch(nextUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      logger.warn('Graph mail search failed', { folder: input.folder, status: response.status });
+      throw new Error(`Graph mail search failed with status ${response.status}`);
+    }
+
+    const json = await response.json() as { value: GraphMailMessage[]; '@odata.nextLink'?: string };
+    messages.push(...json.value.slice(0, input.limit - messages.length));
+    nextUrl = json['@odata.nextLink'] ?? null;
+  }
+
+  return { messages, hasMore: Boolean(nextUrl) };
 }
 
 /**

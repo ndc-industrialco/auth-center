@@ -1,3 +1,4 @@
+import { searchGraphUserMail, type GraphMailMessage } from '@/lib/graphAdminClient';
 import { sendMailAsUser, type MailMessage } from '@/lib/graphMailClient';
 import { userRepository } from '@/repositories/userRepository';
 import { externalIdentityLinkRepository } from '@/repositories/externalIdentityLinkRepository';
@@ -6,6 +7,16 @@ import { logger } from '@/lib/logger';
 
 export interface MailServiceInput extends MailMessage {
   senderUserId: string;
+}
+
+export interface SearchMailServiceInput {
+  userId: string;
+  folder: string;
+  fromEmail?: string;
+  keyword?: string;
+  fromDate?: string;
+  toDate?: string;
+  limit: number;
 }
 
 export class MailService {
@@ -41,6 +52,18 @@ export class MailService {
       logger.error('Mail send failed', { senderUserId: input.senderUserId, error: String(err) });
       throw err;
     }
+  }
+
+  async searchAsUser(input: SearchMailServiceInput): Promise<{ messages: GraphMailMessage[]; hasMore: boolean }> {
+    const user = await userRepository.findById(input.userId);
+    if (!user) throw new NotFoundError('Mailbox owner not found');
+    if (!user.m365Linked) throw new ForbiddenError('Microsoft 365 is not linked for this account');
+
+    const link = await externalIdentityLinkRepository.findByUserId(input.userId);
+    const userUpn = link?.entraUpn ?? user.email;
+    if (!userUpn) throw new ForbiddenError('No resolvable Entra UPN for this mailbox');
+
+    return searchGraphUserMail({ ...input, userUpn });
   }
 }
 

@@ -35,7 +35,7 @@
 | PostgreSQL | Primary data store | `DATABASE_URL`, `DIRECT_URL` |
 | Redis | Session revocation, rate limiting | `REDIS_URL` |
 | Microsoft Entra ID | Employee SSO | `AZURE_AD_TENANT_ID`, `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET` |
-| Microsoft Graph | Employee profile enrichment (employeeId) | Uses Entra access token |
+| Microsoft Graph | Employee profile enrichment and user-scoped CRM mail search | Uses Auth Center Graph app credentials; mailbox scope is derived from the authenticated Entra-linked user |
 
 ## Internal Service Dependencies
 
@@ -59,4 +59,8 @@ appRegistrationService
   ├── permissionGrantRepository
   ├── userRepository
   └── adminAuditRepository
+
+mail search API
+  └── mailService
+        └── graphAdminClient → Microsoft Graph mail folders/messages
 ```

@@ -28,6 +28,12 @@ These are protected admin surfaces.
 | POST | `/api/auth/admin/permission-grants` | Grant a permission to a user |
 | DELETE | `/api/auth/admin/permission-grants` | Revoke a permission grant |
 
+## Consumer Mail Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/consumer/mail/search` | App-scoped Bearer JWT | Search the authenticated Entra-linked user's mailbox by allowlisted folder, sender, keyword, and received-date range; Auth Center fetches Microsoft Graph data and does not persist CRM mail |
+
 ## Token Contract Summary
 
 - Claims: `sub`, `userId`, `employeeId`, `authMethod`, `m365Linked`, `canSendDelegatedMail`, `departmentId`, `appRoles`, `roleVersion`, `sessionId`, `iss`, `aud`, `iat`, `exp`
