@@ -1,4 +1,4 @@
-import { searchGraphUserMail, type GraphMailMessage } from '@/lib/graphAdminClient';
+import { searchGraphUserMail, fetchGraphMailFolders, type GraphMailMessage, type GraphMailFolder } from '@/lib/graphAdminClient';
 import { sendMailAsUser, type MailMessage } from '@/lib/graphMailClient';
 import { userRepository } from '@/repositories/userRepository';
 import { externalIdentityLinkRepository } from '@/repositories/externalIdentityLinkRepository';
@@ -64,6 +64,18 @@ export class MailService {
     if (!userUpn) throw new ForbiddenError('No resolvable Entra UPN for this mailbox');
 
     return searchGraphUserMail({ ...input, userUpn });
+  }
+
+  async listFolders(userId: string): Promise<Array<GraphMailFolder & { wellKnownName: string | null }>> {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new NotFoundError('Mailbox owner not found');
+    if (!user.m365Linked) throw new ForbiddenError('Microsoft 365 is not linked for this account');
+
+    const link = await externalIdentityLinkRepository.findByUserId(userId);
+    const userUpn = link?.entraUpn ?? user.email;
+    if (!userUpn) throw new ForbiddenError('No resolvable Entra UPN for this mailbox');
+
+    return fetchGraphMailFolders(userUpn);
   }
 }
 

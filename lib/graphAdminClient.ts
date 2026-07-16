@@ -303,6 +303,51 @@ export async function searchGraphUserMail(input: {
   return { messages, hasMore: Boolean(nextUrl) };
 }
 
+export interface GraphMailFolder {
+  id: string;
+  displayName: string;
+  totalItemCount?: number;
+  unreadItemCount?: number;
+}
+
+const WELL_KNOWN_FOLDER_NAMES = ['inbox', 'sentitems', 'archive', 'deleteditems', 'drafts', 'junkemail'];
+
+/**
+ * List a user's mail folders (well-known + any custom folders they created).
+ * Graph's `mailFolders` list returns opaque ids, so well-known names are
+ * resolved separately (`/mailFolders/inbox` etc. redirect to the real id) and
+ * matched back onto the list; `wellKnownName` lets `searchGraphUserMail`
+ * keep accepting its existing short names. Custom folders only have `id`.
+ */
+export async function fetchGraphMailFolders(
+  userUpn: string
+): Promise<Array<GraphMailFolder & { wellKnownName: string | null }>> {
+  const [folders, wellKnownIds] = await Promise.all([
+    graphPagedRequest<GraphMailFolder>(
+      `/users/${encodeURIComponent(userUpn)}/mailFolders?$top=100&$select=id,displayName,totalItemCount,unreadItemCount`
+    ),
+    Promise.all(
+      WELL_KNOWN_FOLDER_NAMES.map(async (name) => {
+        try {
+          const folder = await graphRequest<{ id: string }>(
+            `/users/${encodeURIComponent(userUpn)}/mailFolders/${name}?$select=id`
+          );
+          return [folder.id, name] as const;
+        } catch {
+          return null;
+        }
+      })
+    ),
+  ]);
+
+  const idToWellKnownName = new Map(wellKnownIds.filter((entry): entry is readonly [string, string] => entry !== null));
+
+  return folders.map((folder) => ({
+    ...folder,
+    wellKnownName: idToWellKnownName.get(folder.id) ?? null,
+  }));
+}
+
 /**
  * Forward an arbitrary Graph API request using app-only credentials.
  * `path` must start with `/` (e.g. `/users/{id}/sendMail`).
