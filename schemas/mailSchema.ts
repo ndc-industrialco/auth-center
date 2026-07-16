@@ -34,6 +34,9 @@ const mailFolderSchema = z.enum([
 export const searchMailSchema = z.object({
   appId: z.string().trim().min(1).max(100),
   folder: mailFolderSchema.default('inbox'),
+  // Real Graph folder id from GET /mail/folders — overrides `folder` when set,
+  // so custom (non-well-known) folders are searchable too.
+  folderId: z.string().trim().min(1).max(300).optional(),
   fromEmail: z.string().trim().email().optional(),
   keyword: z.string().trim().min(1).max(200).optional(),
   fromDate: z.iso.datetime({ offset: true }).optional(),

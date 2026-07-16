@@ -255,6 +255,7 @@ function escapeGraphSearchValue(value: string): string {
 export async function searchGraphUserMail(input: {
   userUpn: string;
   folder: string;
+  folderId?: string;
   fromEmail?: string;
   keyword?: string;
   fromDate?: string;
@@ -277,7 +278,8 @@ export async function searchGraphUserMail(input: {
   ].filter((value): value is string => Boolean(value));
   if (dateFilters.length > 0) params.set('$filter', dateFilters.join(' and '));
 
-  const firstPath = `/users/${encodeURIComponent(input.userUpn)}/mailFolders/${encodeURIComponent(input.folder)}/messages?${params.toString()}`;
+  const folderSegment = input.folderId ?? input.folder;
+  const firstPath = `/users/${encodeURIComponent(input.userUpn)}/mailFolders/${encodeURIComponent(folderSegment)}/messages?${params.toString()}`;
   const token = await getGraphAdminAccessToken();
   const messages: GraphMailMessage[] = [];
   let nextUrl: string | null = `${GRAPH_BASE_URL}${firstPath}`;
@@ -306,33 +308,44 @@ export async function searchGraphUserMail(input: {
 export interface GraphMailFolder {
   id: string;
   displayName: string;
+  parentFolderId?: string;
+  childFolderCount?: number;
   totalItemCount?: number;
   unreadItemCount?: number;
 }
 
 const WELL_KNOWN_FOLDER_NAMES = ['inbox', 'sentitems', 'archive', 'deleteditems', 'drafts', 'junkemail'];
+const FOLDER_SELECT = 'id,displayName,parentFolderId,childFolderCount,totalItemCount,unreadItemCount';
+
+async function fetchFolderChildren(userUpn: string, folderId: string): Promise<GraphMailFolder[]> {
+  return graphPagedRequest<GraphMailFolder>(
+    `/users/${encodeURIComponent(userUpn)}/mailFolders/${encodeURIComponent(folderId)}/childFolders?$top=100&$select=${FOLDER_SELECT}`
+  );
+}
 
 /**
- * List a user's mail folders (well-known + any custom folders they created).
- * Graph's `mailFolders` list returns opaque ids, so well-known names are
- * resolved separately (`/mailFolders/inbox` etc. redirect to the real id) and
- * matched back onto the list; `wellKnownName` lets `searchGraphUserMail`
- * keep accepting its existing short names. Custom folders only have `id`.
+ * List every mail folder in a user's mailbox: well-known folders, any
+ * top-level custom folders, and all nested subfolders (walked via
+ * childFolderCount). Well-known folders are fetched directly by name and
+ * merged in ahead of the generic top-level listing so inbox/sentitems/etc
+ * are always present even if excluded from that listing for some mailboxes.
+ * `wellKnownName` lets `searchGraphUserMail` keep accepting its existing
+ * short names; `parentFolderId` lets callers render the folder tree.
  */
 export async function fetchGraphMailFolders(
   userUpn: string
 ): Promise<Array<GraphMailFolder & { wellKnownName: string | null }>> {
-  const [folders, wellKnownIds] = await Promise.all([
+  const [topLevel, wellKnownFolders] = await Promise.all([
     graphPagedRequest<GraphMailFolder>(
-      `/users/${encodeURIComponent(userUpn)}/mailFolders?$top=100&$select=id,displayName,totalItemCount,unreadItemCount`
+      `/users/${encodeURIComponent(userUpn)}/mailFolders?$top=100&$select=${FOLDER_SELECT}`
     ),
     Promise.all(
       WELL_KNOWN_FOLDER_NAMES.map(async (name) => {
         try {
-          const folder = await graphRequest<{ id: string }>(
-            `/users/${encodeURIComponent(userUpn)}/mailFolders/${name}?$select=id`
+          const folder = await graphRequest<GraphMailFolder>(
+            `/users/${encodeURIComponent(userUpn)}/mailFolders/${name}?$select=${FOLDER_SELECT}`
           );
-          return [folder.id, name] as const;
+          return { folder, name };
         } catch {
           return null;
         }
@@ -340,11 +353,30 @@ export async function fetchGraphMailFolders(
     ),
   ]);
 
-  const idToWellKnownName = new Map(wellKnownIds.filter((entry): entry is readonly [string, string] => entry !== null));
+  const resolvedWellKnown = wellKnownFolders.filter(
+    (entry): entry is { folder: GraphMailFolder; name: string } => entry !== null
+  );
+  const wellKnownNameById = new Map(resolvedWellKnown.map(({ folder, name }) => [folder.id, name]));
 
-  return folders.map((folder) => ({
+  const byId = new Map<string, GraphMailFolder>();
+  for (const { folder } of resolvedWellKnown) byId.set(folder.id, folder);
+  for (const folder of topLevel) byId.set(folder.id, folder);
+
+  const queue = [...byId.values()];
+  while (queue.length > 0) {
+    const folder = queue.shift()!;
+    if (!folder.childFolderCount) continue;
+    const children = await fetchFolderChildren(userUpn, folder.id);
+    for (const child of children) {
+      if (byId.has(child.id)) continue;
+      byId.set(child.id, child);
+      queue.push(child);
+    }
+  }
+
+  return [...byId.values()].map((folder) => ({
     ...folder,
-    wellKnownName: idToWellKnownName.get(folder.id) ?? null,
+    wellKnownName: wellKnownNameById.get(folder.id) ?? null,
   }));
 }
 

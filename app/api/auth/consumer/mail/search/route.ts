@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     const result = await mailService.searchAsUser({
       userId: claims.userId,
       folder: body.folder,
+      folderId: body.folderId,
       fromEmail: body.fromEmail,
       keyword: body.keyword,
       fromDate: body.fromDate,

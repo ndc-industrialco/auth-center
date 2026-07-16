@@ -12,6 +12,7 @@ export interface MailServiceInput extends MailMessage {
 export interface SearchMailServiceInput {
   userId: string;
   folder: string;
+  folderId?: string;
   fromEmail?: string;
   keyword?: string;
   fromDate?: string;
